@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from pytorch_transformers import *
+from transformers import *
+# from pytorch_transformers import *
 import torch.utils.data as Data
 import pickle
 
@@ -39,7 +40,6 @@ class Augmentor:
                 ru = pickle.load(f)
                 self.transform.append(ru)
 
-    
 
     def __call__(self, ori, idx):
         augmented_data = []
@@ -62,6 +62,10 @@ class Augmentor:
             
         return augmented_data, ori
 
+
+
+
+
 def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False, transform_type='BackTranslation', transform_times = 2):
     """Read data, split the dataset, and build dataset for dataloaders.
 
@@ -78,9 +82,15 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
     """
     # Load the tokenizer for bert
     tokenizer = BertTokenizer.from_pretrained(model)
+    # print(data_path+'train.csv')
 
-    train_df = pd.read_csv(data_path+'train.csv', header=None)
-    test_df = pd.read_csv(data_path+'test.csv', header=None)
+    train_df = pd.read_csv(data_path+'train.csv', header=None, names=list('abc'))
+    test_df = pd.read_csv(data_path+'test.csv', header=None, names=list('abc'))
+
+
+
+
+
 
     # Here we only use the bodies and removed titles to do the classifications
     train_labels = np.array([v-1 for v in train_df[0]])
