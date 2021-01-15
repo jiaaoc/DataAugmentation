@@ -13,6 +13,7 @@ import torch.utils.data as Data
 from transformers import *
 
 # from pytorch_transformers import *
+from code.normal_bert import ClassificationBert
 from torch.autograd import Variable
 from torch.utils.data import Dataset
 
@@ -123,8 +124,8 @@ def main():
     
     optimizer = AdamW(
         [
-            {"params": model.module.bert.parameters(), "lr": args.lrmain},
-            {"params": model.module.linear.parameters(), "lr": args.lrlast},
+            {"params": model.bert.parameters(), "lr": args.lrmain},
+            {"params": model.linear.parameters(), "lr": args.lrlast},
         ])
 
     train_criterion = SemiLoss()
@@ -140,7 +141,7 @@ def main():
     logger.info("  Num Epochs = %d", args.epochs)
     logger.info("  LAM_u = %s" % str(args.lambda_u))
     logger.info("  Batch size = %d" % args.batch_size)
-    logger.info("  Max seq length = %d" % args.max_seq_length)
+    logger.info("  Max seq length = %d" % 256)
 
     # Start training
     for epoch in range(args.epochs):
@@ -218,8 +219,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
                                                  length_u2,  length_ori) = unlabeled_train_iter.next()
         except:
             unlabeled_train_iter = iter(unlabeled_trainloader)
-            (inputs_u, inputs_u2, inputs_ori), (length_u,
-                                                length_u2, length_ori) = unlabeled_train_iter.next()
+
+            (inputs_u, inputs_u2, inputs_ori), (length_u, length_u2, length_ori) = unlabeled_train_iter.next()
 
         batch_size = inputs_x.size(0)
         batch_size_2 = inputs_ori.size(0)
@@ -252,12 +253,13 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             targets_u = targets_u.detach()
 
         mixed = 1
+        mix_ = 0
 
-        if args.co:
-            mix_ = np.random.choice([0, 1], 1)[0]
-        else:
-            mix_ = 1
-
+        # if args.co:
+        #     mix_ = np.random.choice([0, 1], 1)[0]
+        # else:
+        #     mix_ = 1
+        #
         if mix_ == 1:
             l = np.random.beta(args.alpha, args.alpha)
             if args.separate_mix:
@@ -266,6 +268,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
                 l = max(l, 1-l)
         else:
             l = 1
+
+        args.mix_layers_set = [1]
 
         mix_layer = np.random.choice(args.mix_layers_set, 1)[0]
         mix_layer = mix_layer - 1
@@ -288,6 +292,10 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             all_targets = torch.cat(
                 [targets_x, targets_x, targets_u, targets_u, targets_u], dim=0)
 
+
+
+        args.separate_mix = True
+
         if args.separate_mix:
             idx1 = torch.randperm(batch_size)
             idx2 = torch.randperm(all_inputs.size(0) - batch_size) + batch_size
@@ -303,10 +311,13 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         target_a, target_b = all_targets, all_targets[idx]
         length_a, length_b = all_lengths, all_lengths[idx]
 
+        args.mix_method = 0
+
         if args.mix_method == 0:
             # Mix sentences' hidden representations
-            logits = model(input_a, input_b, l, mix_layer)
-            mixed_target = l * target_a + (1 - l) * target_b
+            # logits = model(input_a, input_b, l, mix_layer)
+            # mixed_target = l * target_a + (1 - l) * target_b
+            logits = model(input_a)
 
         elif args.mix_method == 1:
             # Concat snippet of two training sentences, the snippets are selected based on l

@@ -6,21 +6,34 @@ from transformers import *
 # from pytorch_transformers import *
 import torch.utils.data as Data
 import pickle
+from data.augmentation import synonym_replacement, random_flip, random_insert, random_delete, word_flip
 
 
 class Augmentor:
     """Add different Augmentation here: Synonym Replacement, Word Replacement from Vocab, Random Insertion/deletion/swapping, Word Replacement from LM, BackTranslation
     """
 
-    def __init__(self, path=None, transform_type='BackTranslation', transform_times = 2):
+    def __init__(self, path=None, transform_type='BackTranslation', transform_times = 1):
 
         self.transform_type = transform_type
         self.transform_times = transform_times
 
+        self.set_wrds = set()
+
         if transform_type == 'SynonymReplacement':
             pass
         elif transform_type == 'WordReplacementVocab':
-            pass
+            if "hs" in path:
+                train_df = read_csv(path + 'train.csv')
+            else:
+                train_df = pd.read_csv(path + 'train.csv', header=None)
+
+            # Here we only use the bodies and removed titles to do the classifications
+            for txt in train_df[2]:
+                self.set_wrds.update(txt.split(' '))
+
+            self.set_wrds = list(self.set_wrds)
+
         elif transform_type == 'RandomInsertion':
             pass
         elif transform_type == 'RandomDeletion':
@@ -35,90 +48,105 @@ class Augmentor:
             with open(path + 'de_1.pkl', 'rb') as f:
                 de = pickle.load(f)
                 self.transform.append(de)
-            # Pre-processed Russian data
-            with open(path + 'ru_1.pkl', 'rb') as f:
-                ru = pickle.load(f)
-                self.transform.append(ru)
-
+            # # Pre-processed Russian data
+            # with open(path + 'ru_1.pkl', 'rb') as f:
+            #     ru = pickle.load(f)
+            #     self.transform.append(ru)
 
     def __call__(self, ori, idx):
         augmented_data = []
         
         if self.transform_type == 'SynonymReplacement':
-            pass
+            augmented_data = synonym_replacement(ori, 0.3, 2)
         elif self.transform_type == 'WordReplacementVocab':
-            pass
+            augmented_data = word_flip(ori, 0.3, 2, self.set_wrds)
         elif self.transform_type == 'RandomInsertion':
-            pass
+            augmented_data = random_insert(ori, 0.3, 2)
         elif self.transform_type == 'RandomDeletion':
-            pass
+            augmented_data = random_delete(ori, 0.3, 2)
         elif self.transform_type == 'RandomSwapping':
-            pass
+            augmented_data = random_flip(ori, 0.3, 2)
         elif self.transform_type == 'WordReplacementLM':
             pass
         elif self.transform_type == 'BackTranslation':
             for i in range(0, self.transform_times):
-                augmented_data.append(self.transform[i][idx])
-            
+                augmented_data.append(self.transform[i][idx][0])
+                augmented_data.append(self.transform[i][idx][1])
+
+        import ipdb; ipdb.set_trace()
+
         return augmented_data, ori
 
 
+def read_csv(datapath):
+     list_labels = []
+     list_idx = []
+     list_text = []
 
+     with open(datapath, 'r') as f:
+
+         for line in f.readlines():
+             comma_split = line.strip('\n').split(',')
+             list_labels.append(int(comma_split[0]))
+             list_idx.append(int(comma_split[1]))
+             list_text.append(','.join(comma_split[2:]))
+
+     return [list_labels, list_idx, list_text]
 
 
 def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False, transform_type='BackTranslation', transform_times = 2):
-    """Read data, split the dataset, and build dataset for dataloaders.
+     """Read data, split the dataset, and build dataset for dataloaders.
 
-    Arguments:
-        data_path {str} -- Path to your dataset folder: contain a train.csv and test.csv
-        n_labeled_per_class {int} -- Number of labeled data per class
+     Arguments:
+     data_path {str} -- Path to your dataset folder: contain a train.csv and test.csv
+     n_labeled_per_class {int} -- Number of labeled data per class
 
-    Keyword Arguments:
-        unlabeled_per_class {int} -- Number of unlabeled data per class (default: {5000})
-        max_seq_len {int} -- Maximum sequence length (default: {256})
-        model {str} -- Model name (default: {'bert-base-uncased'})
-        train_aug {bool} -- Whether performing augmentation on labeled training set (default: {False})
+     Keyword Arguments:
+     unlabeled_per_class {int} -- Number of unlabeled data per class (default: {5000})
+     max_seq_len {int} -- Maximum sequence length (default: {256})
+     model {str} -- Model name (default: {'bert-base-uncased'})
+     train_aug {bool} -- Whether performing augmentation on labeled training set (default: {False})
 
-    """
-    # Load the tokenizer for bert
-    tokenizer = BertTokenizer.from_pretrained(model)
-    # print(data_path+'train.csv')
+     """
+     # Load the tokenizer for bert
+     tokenizer = BertTokenizer.from_pretrained(model)
+     # print(data_path+'train.csv')
 
-    train_df = pd.read_csv(data_path+'train.csv', header=None, names=list('abc'))
-    test_df = pd.read_csv(data_path+'test.csv', header=None, names=list('abc'))
+     if "hs" in data_path:
+         train_df = read_csv(data_path+'train.csv')
+         test_df = read_csv(data_path+'test.csv')
+     else:
+         train_df = pd.read_csv(data_path+'train.csv', header=None)
+         test_df = pd.read_csv(data_path+'test.csv', header=None)
 
+     # Here we only use the bodies and removed titles to do the classifications
+     train_labels = np.array([v-1 for v in train_df[0]])
+     train_text = np.array([v for v in train_df[2]])
 
+     test_labels = np.array([u-1 for u in test_df[0]])
+     test_text = np.array([v for v in test_df[2]])
 
+     n_labels = max(test_labels) + 1
 
+     # Split the labeled training set, unlabeled training set, development set
+     train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
+     train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
 
+     # Build the dataset class for each set
+     train_labeled_dataset = loader_labeled(
+     train_text[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, max_seq_len, train_aug, Augmentor(data_path, transform_type, transform_times))
+     train_unlabeled_dataset = loader_unlabeled(
+     train_text[train_unlabeled_idxs], train_unlabeled_idxs, tokenizer, max_seq_len, Augmentor(data_path, transform_type, transform_times))
+     val_dataset = loader_labeled(
+     train_text[val_idxs], train_labels[val_idxs], val_idxs, tokenizer, max_seq_len)
+     test_dataset = loader_labeled(
+     test_text, test_labels, None, tokenizer, max_seq_len)
 
-    # Here we only use the bodies and removed titles to do the classifications
-    train_labels = np.array([v-1 for v in train_df[0]])
-    train_text = np.array([v for v in train_df[2]])
+     print("#Labeled: {}, Unlabeled {}, Val {}, Test {}".format(len(
+     train_labeled_idxs), len(train_unlabeled_idxs), len(val_idxs), len(test_labels)))
 
-    test_labels = np.array([u-1 for u in test_df[0]])
-    test_text = np.array([v for v in test_df[2]])
+     return train_labeled_dataset, train_unlabeled_dataset, val_dataset, test_dataset, n_labels
 
-    n_labels = max(test_labels) + 1
-
-    # Split the labeled training set, unlabeled training set, development set
-    train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
-        train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
-
-    # Build the dataset class for each set
-    train_labeled_dataset = loader_labeled(
-        train_text[train_labeled_idxs], train_labels[train_labeled_idxs], tokenizer, max_seq_len, train_aug, Augmentor(data_path, transform_type, transform_times))
-    train_unlabeled_dataset = loader_unlabeled(
-        train_text[train_unlabeled_idxs], train_unlabeled_idxs, tokenizer, max_seq_len, Augmentor(data_path, transform_type, transform_times))
-    val_dataset = loader_labeled(
-        train_text[val_idxs], train_labels[val_idxs], tokenizer, max_seq_len)
-    test_dataset = loader_labeled(
-        test_text, test_labels, tokenizer, max_seq_len)
-
-    print("#Labeled: {}, Unlabeled {}, Val {}, Test {}".format(len(
-        train_labeled_idxs), len(train_unlabeled_idxs), len(val_idxs), len(test_labels)))
-
-    return train_labeled_dataset, train_unlabeled_dataset, val_dataset, test_dataset, n_labels
 
 
 def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, seed=0):
@@ -175,14 +203,16 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
 
 class loader_labeled(Dataset):
     # Data loader for labeled data
-    def __init__(self, dataset_text, dataset_label, tokenizer, max_seq_len, aug=False, augmentor = None):
+    def __init__(self, dataset_text, dataset_label, dataset_idx, tokenizer, max_seq_len, aug=False, augmentor = None):
         self.tokenizer = tokenizer
         self.text = dataset_text
         self.labels = dataset_label
+        self.ids = dataset_idx
         self.max_seq_len = max_seq_len
 
         self.aug = aug
         self.trans_dist = {}
+        self.augmentor = augmentor
 
         if aug:
             print('Augment training data')
@@ -205,8 +235,6 @@ class loader_labeled(Dataset):
 
     def __getitem__(self, idx):
         if self.augmentor is not None:
-
-
             augmented_data, ori = self.augmentor(self.text[idx], self.ids[idx])
 
             tokenized_data = []
@@ -222,6 +250,11 @@ class loader_labeled(Dataset):
             tokenized_data.append(torch.tensor(encode_result_ori))
             labels.append(self.labels[idx])
             tokenized_sentence_length.append(length_ori)
+
+            labels = torch.tensor(labels)
+            tokenized_data = torch.stack(tokenized_data, dim=0)
+
+            import ipdb; ipdb.set_trace()
 
             return (tokenized_data, labels, tokenized_sentence_length)
             
@@ -265,16 +298,23 @@ class loader_unlabeled(Dataset):
 
             tokenized_data = []
             tokenized_sentence_length = []
-            for u in augmented_data:
-                encode_result_u, length_u = self.get_tokenized(u)
-                tokenized_data.append(torch.tensor(encode_result_u))
-                tokenized_sentence_length.append(length_u)
+            # for u in augmented_data:
+            #     encode_result_u, length_u = self.get_tokenized(u)
+            #     tokenized_data.append(torch.tensor(encode_result_u))
+            #     tokenized_sentence_length.append(length_u)
+            encode_result_u1, length_u1 = self.get_tokenized(augmented_data[0])
+            # tokenized_data.append(torch.tensor(encode_result_u))
+            # tokenized_sentence_length.append(length_u)
+
+            encode_result_u2, length_u2 = self.get_tokenized(augmented_data[0])
 
             encode_result_ori, length_ori = self.get_tokenized(ori)
-            tokenized_data.append(torch.tensor(encode_result_ori))
-            tokenized_sentence_length.append(length_ori)
+            # tokenized_data.append(torch.tensor(encode_result_ori))
+            # tokenized_sentence_length.append(length_ori)
 
-            return (tokenized_data, tokenized_sentence_length)
+            # return (tokenized_data, tokenized_sentence_length)
+            return (torch.tensor(encode_result_u1), torch.tensor(encode_result_u2), torch.tensor(encode_result_ori)), (length_u1, length_u2, length_ori)
+
         else:
             text = self.text[idx]
             encode_result, length = self.get_tokenized(text)
