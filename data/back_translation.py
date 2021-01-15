@@ -6,6 +6,10 @@ import os
 import logging
 from tqdm import tqdm
 
+from transformers import FSMTForConditionalGeneration, FSMTTokenizer
+mname = "facebook/wmt19-en-de"
+tokenizer = FSMTTokenizer.from_pretrained(mname)
+
 logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(description='back translation')
 parser.add_argument('--gpu', default='6', type=str,
@@ -14,6 +18,7 @@ parser.add_argument('--data_path', type=str, default='./processed_data/',
                     help='path to data folders')
 
 args = parser.parse_args()
+
 # List available models
 print(torch.hub.list('pytorch/fairseq'))  # [..., 'transformer.wmt16.en-de', ... ]
 
@@ -41,13 +46,15 @@ de2en = de2en.cuda()
 for key, value in tqdm(train_unlabeled_data.items(), ncols=50, desc="Iteration:"):
     new_value = []
 
+    input_ids = tokenizer(value)["input_ids"]
+    trimmed_input_ids = input_ids[:256]
+    trimmed_value = tokenizer.decode(trimmed_input_ids)
+
     for i in range(num_sample_sen):
-        v = de2en.translate(en2de.translate(value, sampling = True, temperature = 0.8),
-                                    sampling = True, temperature = 0.8)
+        sample = en2de.translate(trimmed_value, sampling = True, temperature = 0.8,  skip_invalid_size_inputs=True)
+        v = de2en.translate(sample, sampling = True, temperature = 0.8, skip_invalid_size_inputs=True)
         if cnt % 100 == 0:
             print("***************")
-            print("org: ", value)
-            print("new: ", v)
         new_value.append(v)
     train_unlabeled_data_aug[key] = new_value
     if cnt % 1000 == 0:

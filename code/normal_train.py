@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data as Data
-from pytorch_transformers import *
+# from pytorch_transformers import *
 from torch.autograd import Variable
 from torch.utils.data import Dataset
 
@@ -113,9 +113,9 @@ def main():
     unlabeled_trainloader = Data.DataLoader(
         dataset=train_unlabeled_set, batch_size=args.batch_size_u, shuffle=True)
     val_loader = Data.DataLoader(
-        dataset=val_set, batch_size=512, shuffle=False)
+        dataset=val_set, batch_size=24, shuffle=False)
     test_loader = Data.DataLoader(
-        dataset=test_set, batch_size=512, shuffle=False)
+        dataset=test_set, batch_size=24, shuffle=False)
 
 
     model = ClassificationBert(n_labels).cuda()
@@ -124,11 +124,11 @@ def main():
     
     optimizer = AdamW(
         [
-            {"params": model.module.bert.parameters(), "lr": args.lrmain},
-            {"params": model.module.linear.parameters(), "lr": args.lrlast},
+            {"params": model.bert.parameters(), "lr": args.lrmain},
+            {"params": model.linear.parameters(), "lr": args.lrlast},
         ])
 
-    train_criterion = SemiLoss()
+    # train_criterion = SemiLoss()
     criterion = nn.CrossEntropyLoss()
 
     test_accs = []
@@ -139,11 +139,12 @@ def main():
     logger.info("  Num Epochs = %d", args.epochs)
     logger.info("  Lambda_u = %s" % str(args.lambda_u))
     logger.info("  Batch size = %d" % args.batch_size)
-    logger.info("  Max seq length = %d" % args.max_seq_length)
+    logger.info("  Max seq length = %d" % 256)
 
     for epoch in range(args.epochs):
-        train(labeled_trainloader, unlabeled_trainloader, model, optimizer,
-              scheduler, train_criterion, epoch, n_labels, args.train_aug)
+        # train(labeled_trainloader, unlabeled_trainloader, model, optimizer,
+        #       scheduler, train_criterion, epoch, n_labels, args.train_aug)
+        train(labeled_trainloader, model, optimizer, criterion, epoch)
 
         val_loss, val_acc = validate(
             val_loader, model, criterion, epoch, mode='Valid Stats')
@@ -210,6 +211,11 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch):
 
     for batch_idx, (inputs, targets, length) in enumerate(labeled_trainloader):
         inputs, targets = inputs.cuda(), targets.cuda(non_blocking=True)
+        inputs = inputs.reshape(-1, inputs.shape[-1])
+        targets = targets.reshape(-1)
+
+        import ipdb; ipdb.set_trace()
+
         outputs = model(inputs)
         loss = criterion(outputs, targets)
 

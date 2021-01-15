@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
-from pytorch_transformers import *
+from transformers import *
+
+# from pytorch_transformers import *
 from transformers.modeling_bert import BertEmbeddings, BertPooler, BertLayer
 
 
