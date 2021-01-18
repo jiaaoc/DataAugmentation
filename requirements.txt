@@ -1,5 +1,6 @@
 crcmod
 wandb
+pandas
 numpy==1.19
 scikit-learn==0.23.1
 torch===1.5.0
@@ -8,3 +9,4 @@ transformers==4.0.0
 tqdm==4.48.1
 fairseq
 fastBPE
+nltk
