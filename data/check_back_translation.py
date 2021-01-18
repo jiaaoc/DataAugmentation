@@ -27,8 +27,8 @@ def update_backtranslation(backtranslation_file):
     ctr = 0
     for (k, v) in backtranslation_data.items():
         if len(v) > 0:
-            ctr += 1
             new_backtranslation_data[ctr] = v
+            ctr += 1
 
     with open('processed_data/hs/de_1.pkl', 'wb+') as f:
         pickle.dump(new_backtranslation_data, f)

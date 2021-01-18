@@ -268,7 +268,7 @@ def word_flip(text, alpha, num_aug, set_words):
     :param text: text
     :param alpha: percentage of words to replace
     :param num_aug: number of augmentations
-    :param set_words: set of words in dataset 
+    :param set_words: set of words in dataset
     :return:
     '''
     depth = 1

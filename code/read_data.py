@@ -57,23 +57,20 @@ class Augmentor:
         augmented_data = []
         
         if self.transform_type == 'SynonymReplacement':
-            augmented_data = synonym_replacement(ori, 0.3, 2)
+            augmented_data = synonym_replacement(ori, 0.3, self.transform_times)
         elif self.transform_type == 'WordReplacementVocab':
-            augmented_data = word_flip(ori, 0.3, 2, self.set_wrds)
+            augmented_data = word_flip(ori, 0.3, self.transform_times, self.set_wrds)
         elif self.transform_type == 'RandomInsertion':
-            augmented_data = random_insert(ori, 0.3, 2)
+            augmented_data = random_insert(ori, 0.3, self.transform_times)
         elif self.transform_type == 'RandomDeletion':
-            augmented_data = random_delete(ori, 0.3, 2)
+            augmented_data = random_delete(ori, 0.3, self.transform_times)
         elif self.transform_type == 'RandomSwapping':
-            augmented_data = random_flip(ori, 0.3, 2)
+            augmented_data = random_flip(ori, 0.3, self.transform_times)
         elif self.transform_type == 'WordReplacementLM':
             pass
         elif self.transform_type == 'BackTranslation':
             for i in range(0, self.transform_times):
-                augmented_data.append(self.transform[i][idx][0])
-                augmented_data.append(self.transform[i][idx][1])
-
-        import ipdb; ipdb.set_trace()
+                augmented_data.append(self.transform[0][idx][i])
 
         return augmented_data, ori
 
@@ -132,9 +129,9 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
      train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
      train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
 
-     # Build the dataset class for each set
      train_labeled_dataset = loader_labeled(
      train_text[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, max_seq_len, train_aug, Augmentor(data_path, transform_type, transform_times))
+
      train_unlabeled_dataset = loader_unlabeled(
      train_text[train_unlabeled_idxs], train_unlabeled_idxs, tokenizer, max_seq_len, Augmentor(data_path, transform_type, transform_times))
      val_dataset = loader_labeled(
@@ -146,6 +143,70 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
      train_labeled_idxs), len(train_unlabeled_idxs), len(val_idxs), len(test_labels)))
 
      return train_labeled_dataset, train_unlabeled_dataset, val_dataset, test_dataset, n_labels
+
+# def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, seed=0):
+#     """Split the original training set into labeled training set, unlabeled training set, development set
+#
+#     Arguments:
+#         labels {list} -- List of labeles for original training set
+#         n_labeled_per_class {int} -- Number of labeled data per class
+#         unlabeled_per_class {int} -- Number of unlabeled data per class
+#         n_labels {int} -- The number of classes
+#
+#     Keyword Arguments:
+#         seed {int} -- [random seed of np.shuffle] (default: {0})
+#
+#     Returns:
+#         [list] -- idx for labeled training set, unlabeled training set, development set
+#     """
+#     np.random.seed(seed)
+#     labels = np.array(labels)
+#     train_labeled_idxs = []
+#     train_unlabeled_idxs = []
+#     val_idxs = []
+#
+#
+#     num_data = len(labels)
+#
+#     num_val = int(0.75 * num_data)
+#     idxs = np.arange(num_data)
+#     val_idxs = idxs[-num_val:]
+#
+#     train_labels = labels[:num_val]
+#
+#     for i in range(n_labels):
+#         idxs = np.where(labels == i)[0]
+#         np.random.shuffle(idxs)
+#         if n_labels == 2:
+#             # IMDB
+#             train_pool = np.concatenate((idxs[:500], idxs[5500:-2000]))
+#             train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
+#             train_unlabeled_idxs.extend(
+#                 idxs[500: 500 + 5000])
+#             val_idxs.extend(idxs[-2000:])
+#         elif n_labels == 10:
+#             # DBPedia
+#             train_pool = np.concatenate((idxs[:500], idxs[10500:-2000]))
+#             train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
+#             train_unlabeled_idxs.extend(
+#                 idxs[500: 500 + unlabeled_per_class])
+#             val_idxs.extend(idxs[-2000:])
+#         else:
+#             # Yahoo/AG News
+#             train_pool = np.concatenate((idxs[:500], idxs[5500:-2000]))
+#             train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
+#             train_unlabeled_idxs.extend(
+#                 idxs[500: 500 + 5000])
+#             val_idxs.extend(idxs[-2000:])
+#
+#
+#
+#     np.random.shuffle(train_labeled_idxs)
+#     np.random.shuffle(train_unlabeled_idxs)
+#     np.random.shuffle(val_idxs)
+#
+#     return train_labeled_idxs, train_unlabeled_idxs, val_idxs
+
 
 
 
@@ -168,32 +229,23 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
     labels = np.array(labels)
     train_labeled_idxs = []
     train_unlabeled_idxs = []
-    val_idxs = []
 
-    for i in range(n_labels):
-        idxs = np.where(labels == i)[0]
-        np.random.shuffle(idxs)
-        if n_labels == 2:
-            # IMDB
-            train_pool = np.concatenate((idxs[:500], idxs[5500:-2000]))
-            train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
-            train_unlabeled_idxs.extend(
-                idxs[500: 500 + 5000])
-            val_idxs.extend(idxs[-2000:])
-        elif n_labels == 10:
-            # DBPedia
-            train_pool = np.concatenate((idxs[:500], idxs[10500:-2000]))
-            train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
-            train_unlabeled_idxs.extend(
-                idxs[500: 500 + unlabeled_per_class])
-            val_idxs.extend(idxs[-2000:])
-        else:
-            # Yahoo/AG News
-            train_pool = np.concatenate((idxs[:500], idxs[5500:-2000]))
-            train_labeled_idxs.extend(train_pool[:n_labeled_per_class])
-            train_unlabeled_idxs.extend(
-                idxs[500: 500 + 5000])
-            val_idxs.extend(idxs[-2000:])
+    num_data = len(labels)
+
+    num_val = int(0.25 * num_data)
+    idxs = np.arange(num_data)
+    val_idxs = idxs[-num_val:]
+
+    if n_labeled_per_class == -1:
+        train_labeled_idxs = idxs[:-num_val]
+        train_unlabeled_idxs = []
+    else:
+        train_labels = labels[:-num_val]
+        for i in range(n_labels):
+            lbl_idxs = np.where(train_labels == i)[0]
+            train_labeled_idxs.extend(lbl_idxs[:n_labeled_per_class])
+            train_unlabeled_idxs.extend(lbl_idxs[n_labeled_per_class:n_labeled_per_class+unlabeled_per_class])
+
     np.random.shuffle(train_labeled_idxs)
     np.random.shuffle(train_unlabeled_idxs)
     np.random.shuffle(val_idxs)
@@ -253,8 +305,6 @@ class loader_labeled(Dataset):
 
             labels = torch.tensor(labels)
             tokenized_data = torch.stack(tokenized_data, dim=0)
-
-            import ipdb; ipdb.set_trace()
 
             return (tokenized_data, labels, tokenized_sentence_length)
             
