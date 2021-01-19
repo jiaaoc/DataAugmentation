@@ -8,6 +8,8 @@ import json
 
 # from transformers.utils.logging import logging
 
+from sklearn.metrics import f1_score
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -163,23 +165,23 @@ def main():
         #       scheduler, train_criterion, epoch, n_labels, args.train_aug)
         train(labeled_trainloader, model, optimizer, criterion, epoch)
 
-        val_loss, val_acc = validate(
+        val_loss, val_acc, val_f1 = validate(
             val_loader, model, criterion, epoch, mode='Valid Stats')
-        logger.info("******Epoch {}, val acc {}, val loss {}******".format(epoch,val_acc, val_loss))
+        logger.info("******Epoch {}, val acc {}, val loss {}, val f1 {} ******".format(epoch, val_acc, val_loss, val_f1))
 
-        print("epoch {}, val acc {}, val_loss {}".format(
-            epoch, val_acc, val_loss))
-        f.write(json.dumps({"epoch": epoch, "val_acc": val_acc}) + '\n')
+        print("epoch {}, val acc {}, val_loss {} val f1 {}".format(
+            epoch, val_acc, val_loss, val_f1))
+        f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}) + '\n')
 
         if val_acc >= best_acc:
             best_acc = val_acc
-            test_loss, test_acc = validate(
+            test_loss, test_acc, test_f1 = validate(
                 test_loader, model, criterion, epoch, mode='Test Stats ')
-            f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc}) + '\n')
+            f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
             test_accs.append(test_acc)
             # logger.info("******Epoch {}, test acc {}, test loss {}******".format(epoch, test_acc, test_loss))
-            print("epoch {}, test acc {},test loss {}".format(
-                epoch, test_acc, test_loss))
+            print("epoch {}, test acc {}, test f1 {}, test loss {}".format(
+                epoch, test_acc, test_f1, test_loss))
 
         print('Epoch: ', epoch)
 
@@ -205,6 +207,8 @@ def validate(valloader, model, criterion, epoch, mode):
         total_sample = 0
         acc_total = 0
         correct = 0
+        f1_pred_lbl = []
+        f1_true_lbl = []
 
         for batch_idx, (inputs, targets, length) in enumerate(valloader):
             inputs, targets = inputs.cuda(), targets.cuda(non_blocking=True)
@@ -218,10 +222,16 @@ def validate(valloader, model, criterion, epoch, mode):
             loss_total += loss.item() * inputs.shape[0]
             total_sample += inputs.shape[0]
 
+            f1_pred_lbl.extend(np.array(predicted.cpu()).tolist())
+            f1_true_lbl.extend(np.array(targets.cpu()).tolist())
+
+        f1 = f1_score(f1_true_lbl, f1_pred_lbl, average=None)
+        avg_f1 = np.mean(f1)
+
         acc_total = correct/total_sample
         loss_total = loss_total/total_sample
 
-    return loss_total, acc_total
+    return loss_total, acc_total, avg_f1
 
 
 def train(labeled_trainloader, model, optimizer, criterion, epoch):

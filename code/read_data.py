@@ -141,7 +141,7 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
          train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
      else:
          train_labeled_idxs, train_unlabeled_idxs = train_split(train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
-         val_idxs = np.arange(len(val_text))
+         val_idxs = np.arange(min(len(val_text), 20000))
 
      train_labeled_dataset = loader_labeled(
      train_text[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, max_seq_len, train_aug, Augmentor(data_path, transform_type, transform_times))
