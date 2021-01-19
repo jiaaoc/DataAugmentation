@@ -142,9 +142,11 @@ def main():
     print("Datapath:", underscore_data_path)
     file_name = "_".join([underscore_data_path, str(args.n_labeled), str(args.un_labeled), str(args.transform_type)])
 
-    if not os.path.exists(underscore_data_path):
-        os.makedirs(underscore_data_path)
-    file = os.path.join(underscore_data_path, file_name)
+    data_directory = os.path.join("exp_out", underscore_data_path)
+
+    if not os.path.exists(data_directory):
+        os.makedirs(data_directory)
+    file = os.path.join(data_directory, file_name)
 
     f =  open(file, 'w+')
 

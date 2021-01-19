@@ -164,12 +164,91 @@ def generate_csv_20_ng():
     test_input = []
     for text, lbl in zip(test_txt, test_lbl):
         text = text.replace('\n', '')
-        test_input.append([str(lbl), str(ctr), text])
+        test_input.append([str(lbl+1), str(ctr), text])
         ctr += 1
 
     test_csv = os.path.join("processed_data", "20_ng", "test.csv")
     with open(test_csv, 'w+') as f:
         for lbl_idx_text in test_input:
+            f.write(','.join(lbl_idx_text) + '\n')
+
+def generate_bias():
+
+    labeled_csv = os.path.join("datasets", "bias_data", "WNC", "biased.word.train")
+
+    train_txt = []
+    train_lbl = []
+
+    with open(labeled_csv, 'r') as f:
+        f.readline()
+        for line in f.readlines():
+            tab_split = line.strip('\n').split('\t')
+            train_txt.append(tab_split[1])
+            train_lbl.append(1)
+            train_txt.append(tab_split[2])
+            train_lbl.append(0)
+
+    ctr = 0
+    train_input = []
+    for text, lbl in zip(train_txt, train_lbl):
+        text = text.replace('\n', '')
+        train_input.append([str(lbl+1), str(ctr), text])
+        ctr += 1
+
+    train_csv = os.path.join("processed_data", "bias", "train.csv")
+    with open(train_csv, 'w+') as f:
+        for lbl_idx_text in train_input:
+            f.write(','.join(lbl_idx_text) + '\n')
+
+    labeled_csv = os.path.join("datasets", "bias_data", "WNC", "biased.word.dev")
+
+    dev_txt = []
+    dev_lbl = []
+
+    with open(labeled_csv, 'r') as f:
+        f.readline()
+        for line in f.readlines():
+            tab_split = line.strip('\n').split('\t')
+            dev_txt.append(tab_split[1])
+            dev_lbl.append(1)
+            dev_txt.append(tab_split[2])
+            dev_lbl.append(0)
+
+    dev_input = []
+    for text, lbl in zip(train_txt, train_lbl):
+        text = text.replace('\n', '')
+        dev_input.append([str(lbl+1), str(ctr), text])
+        ctr += 1
+
+    dev_csv = os.path.join("processed_data", "bias", "dev.csv")
+    with open(dev_csv, 'w+') as f:
+        for lbl_idx_text in dev_input:
+            f.write(','.join(lbl_idx_text) + '\n')
+
+
+    labeled_csv = os.path.join("datasets", "bias_data", "WNC", "biased.word.test")
+
+    test_txt = []
+    test_lbl = []
+
+    with open(labeled_csv, 'r') as f:
+        f.readline()
+        for line in f.readlines():
+            tab_split = line.strip('\n').split('\t')
+            test_txt.append(tab_split[1])
+            test_lbl.append(1)
+            test_txt.append(tab_split[2])
+            test_lbl.append(0)
+
+    test_input = []
+    for text, lbl in zip(train_txt, train_lbl):
+        text = text.replace('\n', '')
+        test_input.append([str(lbl+1), str(ctr), text])
+        ctr += 1
+
+    test_csv = os.path.join("processed_data", "bias", "test.csv")
+    with open(test_csv, 'w+') as f:
+        for lbl_idx_text in dev_input:
             f.write(','.join(lbl_idx_text) + '\n')
 
 
@@ -178,7 +257,8 @@ def generate_csv(dataset):
         generate_csv_hs()
     elif dataset == "20_ng":
         generate_csv_20_ng()
-
+    elif dataset == "bias":
+        generate_bias()
 
 
 if __name__ == "__main__":

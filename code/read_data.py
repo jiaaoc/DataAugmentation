@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import torch
+import os
 from torch.utils.data import Dataset
 from transformers import *
 # from pytorch_transformers import *
@@ -82,11 +83,12 @@ def read_csv(datapath):
 
      with open(datapath, 'r') as f:
 
-         for line in f.readlines():
+         for idx, line in enumerate(f.readlines()):
              comma_split = line.strip('\n').split(',')
-             list_labels.append(int(comma_split[0]))
-             list_idx.append(int(comma_split[1]))
-             list_text.append(','.join(comma_split[2:]))
+             if len(comma_split) > 2 and comma_split[0].isdigit() and comma_split[1].isdigit():
+                 list_labels.append(int(comma_split[0]))
+                 list_idx.append(int(comma_split[1]))
+                 list_text.append(','.join(comma_split[2:]))
 
      return [list_labels, list_idx, list_text]
 
@@ -109,9 +111,17 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
      tokenizer = BertTokenizer.from_pretrained(model)
      # print(data_path+'train.csv')
 
-     if "hs" in data_path:
+     val_df = None
+
+     if "hs" in data_path or "20_ng" in data_path or "bias" in data_path:
          train_df = read_csv(data_path+'train.csv')
          test_df = read_csv(data_path+'test.csv')
+         if os.path.exists(data_path+'dev.csv'):
+             val_df = read_csv(data_path+'dev.csv')
+
+             val_labels = np.array([u-1 for u in val_df[0]])
+             val_text = np.array([v for v in val_df[2]])
+
      else:
          train_df = pd.read_csv(data_path+'train.csv', header=None)
          test_df = pd.read_csv(data_path+'test.csv', header=None)
@@ -125,17 +135,26 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
 
      n_labels = max(test_labels) + 1
 
-     # Split the labeled training set, unlabeled training set, development set
-     train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
-     train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
+     if val_df is None:
+         # Split the labeled training set, unlabeled training set, development set
+         train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
+         train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
+     else:
+         train_labeled_idxs, train_unlabeled_idxs = train_split(train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
+         val_idxs = np.arange(len(val_text))
 
      train_labeled_dataset = loader_labeled(
      train_text[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, max_seq_len, train_aug, Augmentor(data_path, transform_type, transform_times))
 
      train_unlabeled_dataset = loader_unlabeled(
      train_text[train_unlabeled_idxs], train_unlabeled_idxs, tokenizer, max_seq_len, Augmentor(data_path, transform_type, transform_times))
-     val_dataset = loader_labeled(
-     train_text[val_idxs], train_labels[val_idxs], val_idxs, tokenizer, max_seq_len)
+     if val_df is None:
+         val_dataset = loader_labeled(
+         train_text[val_idxs], train_labels[val_idxs], val_idxs, tokenizer, max_seq_len)
+     else:
+         val_dataset = loader_labeled(
+         val_text[val_idxs], val_labels[val_idxs], val_idxs, tokenizer, max_seq_len)
+
      test_dataset = loader_labeled(
      test_text, test_labels, None, tokenizer, max_seq_len)
 
@@ -251,6 +270,32 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
     np.random.shuffle(val_idxs)
 
     return train_labeled_idxs, train_unlabeled_idxs, val_idxs
+
+
+def train_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, seed=0):
+    np.random.seed(seed)
+    labels = np.array(labels)
+    train_labeled_idxs = []
+    train_unlabeled_idxs = []
+
+    num_data = len(labels)
+
+    idxs = np.arange(num_data)
+
+    if n_labeled_per_class == -1:
+        train_labeled_idxs = idxs
+        train_unlabeled_idxs = []
+    else:
+        train_labels = labels
+        for i in range(n_labels):
+            lbl_idxs = np.where(train_labels == i)[0]
+            train_labeled_idxs.extend(lbl_idxs[:n_labeled_per_class])
+            train_unlabeled_idxs.extend(lbl_idxs[n_labeled_per_class:n_labeled_per_class+unlabeled_per_class])
+
+    np.random.shuffle(train_labeled_idxs)
+    np.random.shuffle(train_unlabeled_idxs)
+
+    return train_labeled_idxs, train_unlabeled_idxs
 
 
 class loader_labeled(Dataset):

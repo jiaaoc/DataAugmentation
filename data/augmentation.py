@@ -241,9 +241,7 @@ def random_delete(text, alpha, num_aug):
 
     list_agmnt = []
 
-    ctr = 0
     while len(list_agmnt) < num_aug:
-        ctr += 1
         agmnt_list_wrds = []
 
         for wrd in list_wrds:
@@ -254,9 +252,6 @@ def random_delete(text, alpha, num_aug):
         if hash_aug_text not in hash_aug_text_seen:
             list_agmnt.append(TreebankWordDetokenizer().detokenize(agmnt_list_wrds))
         hash_aug_text_seen.add(hash_aug_text)
-
-        if ctr >= num_aug:
-            break
 
     return list_agmnt
 
