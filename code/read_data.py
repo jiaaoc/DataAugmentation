@@ -24,7 +24,7 @@ class Augmentor:
         if transform_type == 'SynonymReplacement':
             pass
         elif transform_type == 'WordReplacementVocab':
-            if "hs" in path or "bias" in path or "20_ng" in path:
+            if "hs" in path or "bias" in path or "20_ng" in path or "pubmed" in data_path:
                 train_df = read_csv(path + 'train.csv')
             else:
                 train_df = pd.read_csv(path + 'train.csv', header=None)
@@ -112,7 +112,7 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
      # print(data_path+'train.csv')
 
      val_df = None
-     if "hs" in data_path or "20_ng" in data_path or "bias" in data_path:
+     if "hs" in data_path or "20_ng" in data_path or "bias" in data_path or "pubmed" in data_path:
          train_df = read_csv(data_path+'train.csv')
          test_df = read_csv(data_path+'test.csv')
          if os.path.exists(data_path+'dev.csv'):
