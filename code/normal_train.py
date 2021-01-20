@@ -141,7 +141,6 @@ def main():
     test_accs = []
 
     underscore_data_path = os.path.split(os.path.split(args.data_path)[0])[1].replace("/", "_")
-    print("Datapath:", underscore_data_path)
     file_name = "_".join([underscore_data_path, str(args.n_labeled), str(args.un_labeled), str(args.transform_type)])
 
     data_directory = os.path.join("exp_out", underscore_data_path)
@@ -175,22 +174,30 @@ def main():
 
         if val_acc >= best_acc:
             best_acc = val_acc
-            test_loss, test_acc, test_f1 = validate(
-                test_loader, model, criterion, epoch, mode='Test Stats ')
-            f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
-            test_accs.append(test_acc)
-            # logger.info("******Epoch {}, test acc {}, test loss {}******".format(epoch, test_acc, test_loss))
-            print("epoch {}, test acc {}, test f1 {}, test loss {}".format(
-                epoch, test_acc, test_f1, test_loss))
+            torch.save(model.state_dict(), file + ".pt")
+            # test_loss, test_acc, test_f1 = validate(
+            #     test_loader, model, criterion, epoch, mode='Test Stats ')
+            # f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
+            # test_accs.append(test_acc)
+            # # logger.info("******Epoch {}, test acc {}, test loss {}******".format(epoch, test_acc, test_loss))
+            # print("epoch {}, test acc {}, test f1 {}, test loss {}".format(
+            #     epoch, test_acc, test_f1, test_loss))
 
         print('Epoch: ', epoch)
 
-        print('Best acc:')
-        print(best_acc)
+    model.load_state_dict(torch.load(file + ".pt"))
+    test_loss, test_acc, test_f1 = validate(
+        test_loader, model, criterion, epoch, mode='Test Stats ')
+    f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
+    test_accs.append(test_acc)
 
-        print('Test acc:')
-        print(test_accs)
-    
+    print('Best acc:')
+    print(best_acc)
+
+    print('Test acc:')
+    print(test_accs)
+
+
     # logger.info("******Finished training, test acc {}******".format(test_accs[-1]))
     print("Finished training!")
     print('Best acc:')

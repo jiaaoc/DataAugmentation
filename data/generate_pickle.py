@@ -252,6 +252,69 @@ def generate_bias():
             f.write(','.join(lbl_idx_text) + '\n')
 
 
+def generate_pubmed():
+    train_csv = os.path.join("datasets", "pubmed", "PubMed_20k_RCT_numbers_replaced_with_at_sign", "train.txt")
+
+    dict_lbl2idx = {}
+    ctr = 0
+
+    train_input = []
+    with open(train_csv, 'r') as f:
+        for line in f.readlines():
+            tab_split = line.strip('\n').split('\t')
+            if len(tab_split) > 1:
+                text = tab_split[1]
+
+                if tab_split[0] not in dict_lbl2idx:
+                    dict_lbl2idx[tab_split[0]] = len(dict_lbl2idx)
+                lbl = dict_lbl2idx[tab_split[0]]
+                train_input.append([str(lbl), str(ctr), text])
+                ctr += 1
+
+    train_csv = os.path.join("processed_data", "pubmed", "train.csv")
+    with open(train_csv, 'w+') as f:
+        for lbl_idx_text in train_input:
+            f.write(','.join(lbl_idx_text) + '\n')
+
+    dev_csv = os.path.join("datasets", "pubmed", "PubMed_20k_RCT_numbers_replaced_with_at_sign", "dev.txt")
+    dev_input = []
+    with open(dev_csv, 'r') as f:
+        for line in f.readlines():
+            tab_split = line.strip('\n').split('\t')
+            if len(tab_split) > 1:
+                text = tab_split[1]
+
+                if tab_split[0] not in dict_lbl2idx:
+                    dict_lbl2idx[tab_split[0]] = len(dict_lbl2idx)
+                lbl = dict_lbl2idx[tab_split[0]]
+                dev_input.append([str(lbl), str(ctr), text])
+                ctr += 1
+
+    dev_csv = os.path.join("processed_data", "pubmed", "dev.csv")
+    with open(dev_csv, 'w+') as f:
+        for lbl_idx_text in dev_input:
+            f.write(','.join(lbl_idx_text) + '\n')
+
+    test_csv = os.path.join("datasets", "pubmed", "PubMed_20k_RCT_numbers_replaced_with_at_sign", "dev.txt")
+    test_input = []
+    with open(test_csv, 'r') as f:
+        for line in f.readlines():
+            tab_split = line.strip('\n').split('\t')
+            if len(tab_split) > 1:
+                text = tab_split[1]
+
+                if tab_split[0] not in dict_lbl2idx:
+                    dict_lbl2idx[tab_split[0]] = len(dict_lbl2idx)
+                lbl = dict_lbl2idx[tab_split[0]]
+                test_input.append([str(lbl), str(ctr), text])
+                ctr += 1
+    print(dict_lbl2idx)
+    test_csv = os.path.join("processed_data", "pubmed", "test.csv")
+    with open(test_csv, 'w+') as f:
+        for lbl_idx_text in test_input:
+            f.write(','.join(lbl_idx_text) + '\n')
+
+
 def generate_csv(dataset):
     if dataset == "hs":
         generate_csv_hs()
@@ -259,6 +322,8 @@ def generate_csv(dataset):
         generate_csv_20_ng()
     elif dataset == "bias":
         generate_bias()
+    elif dataset == "pubmed":
+        generate_pubmed()
 
 
 if __name__ == "__main__":
