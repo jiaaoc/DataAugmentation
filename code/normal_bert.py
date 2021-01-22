@@ -17,7 +17,10 @@ class ClassificationBert(nn.Module):
         output = self.bert(x)
         all_hidden = output[0]
 
-        pooled_output = torch.sum(all_hidden, 1) / torch.sum(x > 0, dim=1)[:,None]
+        input_length = torch.sum(x > 0, dim=1)
+        input_length = torch.max(input_length, torch.ones_like(input_length))
+
+        pooled_output = torch.sum(all_hidden, 1) / input_length[:,None]
 
         # Use linear layer to do the predictions
         predict = self.linear(pooled_output)

@@ -241,9 +241,7 @@ def random_delete(text, alpha, num_aug):
 
     list_agmnt = []
 
-    ctr = 0
     while len(list_agmnt) < num_aug:
-        ctr += 1
         agmnt_list_wrds = []
 
         for wrd in list_wrds:
@@ -255,11 +253,35 @@ def random_delete(text, alpha, num_aug):
             list_agmnt.append(TreebankWordDetokenizer().detokenize(agmnt_list_wrds))
         hash_aug_text_seen.add(hash_aug_text)
 
-        if ctr >= num_aug:
-            break
-
     return list_agmnt
 
+
+def span_cutoff(text, alpha, num_aug):
+    '''
+    Randomly remove words
+
+    :param text: text
+    :param alpha: percentage of words to replace
+    :param num_aug: number of augmentations
+    :return:
+    '''
+    list_wrds = word_tokenize(text)
+    num_wrds = len(list_wrds)
+
+    len_span = int(num_wrds * alpha)
+
+    list_agmnt = []
+
+    while len(list_agmnt) < num_aug:
+        agmnt_list_wrds = list_wrds.copy()
+        start_idx = random.randint(0, num_wrds - len_span - 1)
+
+        for i in range(start_idx, start_idx+len_span):
+            agmnt_list_wrds[i] = "[PAD]"
+
+        list_agmnt.append(TreebankWordDetokenizer().detokenize(agmnt_list_wrds))
+
+    return list_agmnt
 
 def word_flip(text, alpha, num_aug, set_words):
     '''
@@ -309,3 +331,4 @@ def word_flip(text, alpha, num_aug, set_words):
             list_agmnt.append(TreebankWordDetokenizer().detokenize(agmnt_list_wrds))
 
     return list_agmnt
+
