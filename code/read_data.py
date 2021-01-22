@@ -7,7 +7,7 @@ from transformers import *
 # from pytorch_transformers import *
 import torch.utils.data as Data
 import pickle
-from data.augmentation import synonym_replacement, random_flip, random_insert, random_delete, word_flip
+from data.augmentation import synonym_replacement, random_flip, random_insert, random_delete, word_flip, span_cutoff
 
 
 class Augmentor:
@@ -24,7 +24,7 @@ class Augmentor:
         if transform_type == 'SynonymReplacement':
             pass
         elif transform_type == 'WordReplacementVocab':
-            if "hs" in path or "bias" in path or "20_ng" in path or "pubmed" in data_path:
+            if "hs" in path or "bias" in path or "20_ng" in path or "pubmed" in path:
                 train_df = read_csv(path + 'train.csv')
             else:
                 train_df = pd.read_csv(path + 'train.csv', header=None)
@@ -72,6 +72,8 @@ class Augmentor:
         elif self.transform_type == 'BackTranslation':
             for i in range(0, self.transform_times):
                 augmented_data.append(self.transform[0][idx][i])
+        elif self.transform_type == "Cutoff":
+            augmented_data = span_cutoff(ori, 0.3, self.transform_times)
 
         return augmented_data, ori
 

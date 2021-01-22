@@ -11,12 +11,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data as Data
 from transformers import *
+from sklearn.metrics import f1_score
+
 
 # from pytorch_transformers import *
 from code.normal_bert import ClassificationBert
 from torch.autograd import Variable
 from torch.utils.data import Dataset
-
+import json
 from read_data import *
 from mixtext import MixText
 
@@ -41,6 +43,8 @@ parser.add_argument('--batch-size-u', default=24, type=int, metavar='N',
                     help='train batchsize')
 parser.add_argument('--val-iteration', type=int, default=200,
                     help='frequency of evaluation')
+parser.add_argument('--test-batch-size', default=24, type=int, metavar='N',
+                    help='train batchsize')
 
 parser.add_argument('--lrmain', '--learning-rate-bert', default=0.00001, type=float,
                     metavar='LR', help='initial learning rate for bert')
@@ -107,14 +111,19 @@ def main():
     train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
         args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug,
         transform_type=args.transform_type, transform_times = args.transform_times)
+
+    # train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
+    #     args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug,
+    #     transform_type=args.transform_type, transform_times = args.transform_times)
+
     labeled_trainloader = Data.DataLoader(
         dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
     unlabeled_trainloader = Data.DataLoader(
         dataset=train_unlabeled_set, batch_size=args.batch_size_u, shuffle=True)
     val_loader = Data.DataLoader(
-        dataset=val_set, batch_size=512, shuffle=False)
+        dataset=val_set, batch_size=args.test_batch_size, shuffle=False)
     test_loader = Data.DataLoader(
-        dataset=test_set, batch_size=512, shuffle=False)
+        dataset=test_set, batch_size=args.test_batch_size, shuffle=False)
 
     # Define the model, set the optimizer
     model = ClassificationBert(n_labels).cuda()
@@ -143,13 +152,25 @@ def main():
     logger.info("  Batch size = %d" % args.batch_size)
     logger.info("  Max seq length = %d" % 256)
 
+    underscore_data_path = os.path.split(os.path.split(args.data_path)[0])[1].replace("/", "_")
+    file_name = "_".join([underscore_data_path, str(args.n_labeled), str(args.un_labeled), str(args.transform_type)])
+
+    data_directory = os.path.join("exp_out", "ssl_" + underscore_data_path)
+
+    if not os.path.exists(data_directory):
+        os.makedirs(data_directory)
+    file = os.path.join(data_directory, file_name)
+
+    f =  open(file, 'w+')
+
+
     # Start training
     for epoch in range(args.epochs):
 
         train(labeled_trainloader, unlabeled_trainloader, model, optimizer,
               scheduler, train_criterion, epoch, n_labels, args.train_aug)
 
-        val_loss, val_acc = validate(
+        val_loss, val_acc, val_f1 = validate(
             val_loader, model, criterion, epoch, mode='Valid Stats')
 
 
@@ -158,30 +179,40 @@ def main():
         print("epoch {}, val acc {}, val_loss {}".format(
             epoch, val_acc, val_loss))
 
+        f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}) + '\n')
+
+
         if val_acc >= best_acc:
             best_acc = val_acc
-            test_loss, test_acc = validate(
-                test_loader, model, criterion, epoch, mode='Test Stats ')
-            test_accs.append(test_acc)
-            logger.info("******Epoch {}, test acc {}, test loss {}******".format(epoch, test_acc, test_loss))
-            print("epoch {}, test acc {},test loss {}".format(
-                epoch, test_acc, test_loss))
+            torch.save(model.state_dict(), file + ".pt")
+            # test_loss, test_acc, test_f1 = validate(
+            #     test_loader, model, criterion, epoch, mode='Test Stats ')
+            # test_accs.append(test_acc)
+            # logger.info("******Epoch {}, test acc {}, test loss {}******".format(epoch, test_acc, test_loss))
+            # print("epoch {}, test acc {},test loss {}".format(
+            #     epoch, test_acc, test_loss))
 
-        print('Epoch: ', epoch)
+    model.load_state_dict(torch.load(file + ".pt"))
+    test_loss, test_acc, test_f1 = validate(
+        test_loader, model, criterion, epoch, mode='Test Stats ')
+    f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
+    test_accs.append(test_acc)
 
-        print('Best acc:')
-        print(best_acc)
-
-        print('Test acc:')
-        print(test_accs)
-
-    logger.info("******Finished training, test acc {}******".format(test_accs[-1]))
-    print("Finished training!")
-    print('Best acc:')
-    print(best_acc)
-
-    print('Test acc:')
-    print(test_accs)
+    #     print('Epoch: ', epoch)
+    #
+    #     print('Best acc:')
+    #     print(best_acc)
+    #
+    #     print('Test acc:')
+    #     print(test_accs)
+    #
+    # logger.info("******Finished training, test acc {}******".format(test_accs[-1]))
+    # print("Finished training!")
+    # print('Best acc:')
+    # print(best_acc)
+    #
+    # print('Test acc:')
+    # print(test_accs)
 
 
 def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, scheduler, criterion, epoch, n_labels, train_aug=False):
@@ -222,12 +253,18 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
             (inputs_u, inputs_u2, inputs_ori), (length_u, length_u2, length_ori) = unlabeled_train_iter.next()
 
+
         batch_size = inputs_x.size(0)
         batch_size_2 = inputs_ori.size(0)
+        inputs_x = torch.tensor(inputs_x[:,0])
+        targets_x = torch.tensor(targets_x[:,0])
+
         targets_x = torch.zeros(batch_size, n_labels).scatter_(
             1, targets_x.view(-1, 1), 1)
 
+
         inputs_x, targets_x = inputs_x.cuda(), targets_x.cuda(non_blocking=True)
+
         inputs_u = inputs_u.cuda()
         inputs_u2 = inputs_u2.cuda()
         inputs_ori = inputs_ori.cuda()
@@ -278,8 +315,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             all_inputs = torch.cat(
                 [inputs_x, inputs_u, inputs_u2, inputs_ori, inputs_ori], dim=0)
 
-            all_lengths = torch.cat(
-                [inputs_x_length, length_u, length_u2, length_ori, length_ori], dim=0)
+            # all_lengths = torch.cat(
+            #     [inputs_x_length, length_u, length_u2, length_ori, length_ori], dim=0)
 
             all_targets = torch.cat(
                 [targets_x, targets_u, targets_u, targets_u, targets_u], dim=0)
@@ -287,8 +324,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         else:
             all_inputs = torch.cat(
                 [inputs_x, inputs_x_aug, inputs_u, inputs_u2, inputs_ori], dim=0)
-            all_lengths = torch.cat(
-                [inputs_x_length, inputs_x_length, length_u, length_u2, length_ori], dim=0)
+            # all_lengths = torch.cat(
+            #     [inputs_x_length, inputs_x_length, length_u, length_u2, length_ori], dim=0)
             all_targets = torch.cat(
                 [targets_x, targets_x, targets_u, targets_u, targets_u], dim=0)
 
@@ -309,7 +346,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         input_a, input_b = all_inputs, all_inputs[idx]
         target_a, target_b = all_targets, all_targets[idx]
-        length_a, length_b = all_lengths, all_lengths[idx]
+        # length_a, length_b = all_lengths, all_lengths[idx]
 
         args.mix_method = 0
 
@@ -317,64 +354,64 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             # Mix sentences' hidden representations
             # logits = model(input_a, input_b, l, mix_layer)
             # mixed_target = l * target_a + (1 - l) * target_b
+            mixed_target = target_a
             logits = model(input_a)
 
-        elif args.mix_method == 1:
-            # Concat snippet of two training sentences, the snippets are selected based on l
-            # For example: "I lova you so much" and "He likes NLP" could be mixed as "He likes NLP so much".
-            # The corresponding labels are mixed with coefficient as well
-            mixed_input = []
-            if l != 1:
-                for i in range(input_a.size(0)):
-                    length1 = math.floor(int(length_a[i]) * l)
-                    idx1 = torch.randperm(int(length_a[i]) - length1 + 1)[0]
-                    length2 = math.ceil(int(length_b[i]) * (1-l))
-                    if length1 + length2 > 256:
-                        length2 = 256-length1 - 1
-                    idx2 = torch.randperm(int(length_b[i]) - length2 + 1)[0]
-                    try:
-                        mixed_input.append(
-                            torch.cat((input_a[i][idx1: idx1 + length1], torch.tensor([102]).cuda(), input_b[i][idx2:idx2 + length2], torch.tensor([0]*(256-1-length1-length2)).cuda()), dim=0).unsqueeze(0))
-                    except:
-                        print(256 - 1 - length1 - length2,
-                              idx2, length2, idx1, length1)
+        # elif args.mix_method == 1:
+        #     # Concat snippet of two training sentences, the snippets are selected based on l
+        #     # For example: "I lova you so much" and "He likes NLP" could be mixed as "He likes NLP so much".
+        #     # The corresponding labels are mixed with coefficient as well
+        #     mixed_input = []
+        #     if l != 1:
+        #         for i in range(input_a.size(0)):
+        #             length1 = math.floor(int(length_a[i]) * l)
+        #             idx1 = torch.randperm(int(length_a[i]) - length1 + 1)[0]
+        #             length2 = math.ceil(int(length_b[i]) * (1-l))
+        #             if length1 + length2 > 256:
+        #                 length2 = 256-length1 - 1
+        #             idx2 = torch.randperm(int(length_b[i]) - length2 + 1)[0]
+        #             try:
+        #                 mixed_input.append(
+        #                     torch.cat((input_a[i][idx1: idx1 + length1], torch.tensor([102]).cuda(), input_b[i][idx2:idx2 + length2], torch.tensor([0]*(256-1-length1-length2)).cuda()), dim=0).unsqueeze(0))
+        #             except:
+        #                 print(256 - 1 - length1 - length2,
+        #                       idx2, length2, idx1, length1)
+        #
+        #         mixed_input = torch.cat(mixed_input, dim=0)
+        #
+        #     else:
+        #         mixed_input = input_a
+        #
+        #     logits = model(mixed_input)
+        #     mixed_target = l * target_a + (1 - l) * target_b
+        #
+        # elif args.mix_method == 2:
+        #     # Concat two training sentences
+        #     # The corresponding labels are averaged
+        #     if l == 1:
+        #         mixed_input = []
+        #         for i in range(input_a.size(0)):
+        #             mixed_input.append(
+        #                 torch.cat((input_a[i][:length_a[i]], torch.tensor([102]).cuda(), input_b[i][:length_b[i]], torch.tensor([0]*(512-1-int(length_a[i])-int(length_b[i]))).cuda()), dim=0).unsqueeze(0))
+        #
+        #         mixed_input = torch.cat(mixed_input, dim=0)
+        #         logits = model(mixed_input, sent_size=512)
+        #
+        #         #mixed_target = torch.clamp(target_a + target_b, max = 1)
+        #         mixed = 0
+        #         mixed_target = (target_a + target_b)/2
+        #     else:
+        #         mixed_input = input_a
+        #         mixed_target = target_a
+        #         logits = model(mixed_input, sent_size=256)
+        #         mixed = 1
 
-                mixed_input = torch.cat(mixed_input, dim=0)
-
-            else:
-                mixed_input = input_a
-
-            logits = model(mixed_input)
-            mixed_target = l * target_a + (1 - l) * target_b
-
-        elif args.mix_method == 2:
-            # Concat two training sentences
-            # The corresponding labels are averaged
-            if l == 1:
-                mixed_input = []
-                for i in range(input_a.size(0)):
-                    mixed_input.append(
-                        torch.cat((input_a[i][:length_a[i]], torch.tensor([102]).cuda(), input_b[i][:length_b[i]], torch.tensor([0]*(512-1-int(length_a[i])-int(length_b[i]))).cuda()), dim=0).unsqueeze(0))
-
-                mixed_input = torch.cat(mixed_input, dim=0)
-                logits = model(mixed_input, sent_size=512)
-
-                #mixed_target = torch.clamp(target_a + target_b, max = 1)
-                mixed = 0
-                mixed_target = (target_a + target_b)/2
-            else:
-                mixed_input = input_a
-                mixed_target = target_a
-                logits = model(mixed_input, sent_size=256)
-                mixed = 1
-
-        Lx, Lu, w, Lu2, w2 = criterion(logits[:batch_size], mixed_target[:batch_size], logits[batch_size:-batch_size_2],
+        Lx, Lu, w = criterion(logits[:batch_size], mixed_target[:batch_size], logits[batch_size:-batch_size_2],
                                        mixed_target[batch_size:-batch_size_2], logits[-batch_size_2:], epoch+batch_idx/args.val_iteration, mixed)
 
-        if mix_ == 1:
-            loss = Lx + w * Lu
-        else:
-            loss = Lx + w * Lu + w2 * Lu2
+
+        # loss = Lx
+        loss = Lx + w * Lu
 
         #max_grad_norm = 1.0
         #torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
@@ -383,9 +420,11 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         optimizer.step()
         # scheduler.step()
 
-        if batch_idx % 1000 == 0:
-            print("epoch {}, step {}, loss {}, Lx {}, Lu {}, Lu2 {}".format(
-                epoch, batch_idx, loss.item(), Lx.item(), Lu.item(), Lu2.item()))
+        # if batch_idx % 1000 == 0:
+        # print("epoch {}, step {}, loss {}, Lx {}, Lu {}, Lu2 {}".format(
+        #         epoch, batch_idx, loss.item(), Lx.item(), Lu.item(), Lu2.item()))
+        print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
+                epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))
 
 
 def validate(valloader, model, criterion, epoch, mode):
@@ -395,6 +434,8 @@ def validate(valloader, model, criterion, epoch, mode):
         total_sample = 0
         acc_total = 0
         correct = 0
+        f1_pred_lbl = []
+        f1_true_lbl = []
 
         for batch_idx, (inputs, targets, length) in enumerate(valloader):
             inputs, targets = inputs.cuda(), targets.cuda(non_blocking=True)
@@ -403,20 +444,23 @@ def validate(valloader, model, criterion, epoch, mode):
 
             _, predicted = torch.max(outputs.data, 1)
 
-            if batch_idx == 0:
-                print("Sample some true labeles and predicted labels")
-                print(predicted[:20])
-                print(targets[:20])
+
+            f1_pred_lbl.extend(np.array(predicted.cpu()).tolist())
+            f1_true_lbl.extend(np.array(targets.cpu()).tolist())
+
 
             correct += (np.array(predicted.cpu()) ==
                         np.array(targets.cpu())).sum()
             loss_total += loss.item() * inputs.shape[0]
             total_sample += inputs.shape[0]
 
+        f1 = f1_score(f1_true_lbl, f1_pred_lbl, average=None)
+        avg_f1 = np.mean(f1)
+
         acc_total = correct/total_sample
         loss_total = loss_total/total_sample
 
-    return loss_total, acc_total
+    return loss_total, acc_total, avg_f1
 
 
 def linear_rampup(current, rampup_length=args.epochs):
@@ -428,6 +472,9 @@ def linear_rampup(current, rampup_length=args.epochs):
 
 
 class SemiLoss(object):
+    # args.margin = 0
+    # args.lambda_u_hinge = 0
+
     def __call__(self, outputs_x, targets_x, outputs_u, targets_u, outputs_u_2, epoch, mixed=1):
 
         if args.mix_method == 0 or args.mix_method == 1:
@@ -440,35 +487,35 @@ class SemiLoss(object):
 
             Lu = F.kl_div(probs_u.log(), targets_u, None, None, 'batchmean')
 
-            Lu2 = torch.mean(torch.clamp(torch.sum(-F.softmax(outputs_u, dim=1)
-                                                   * F.log_softmax(outputs_u, dim=1), dim=1) - args.margin, min=0))
+            # Lu2 = torch.mean(torch.clamp(torch.sum(-F.softmax(outputs_u, dim=1)
+            #                                        * F.log_softmax(outputs_u, dim=1), dim=1) - args.margin, min=0))
 
-        elif args.mix_method == 2:
-            if mixed == 0:
-                Lx = - \
-                    torch.mean(torch.sum(F.logsigmoid(
-                        outputs_x) * targets_x, dim=1))
+        # elif args.mix_method == 2:
+        #     if mixed == 0:
+        #         Lx = - \
+        #             torch.mean(torch.sum(F.logsigmoid(
+        #                 outputs_x) * targets_x, dim=1))
+        #
+        #         probs_u = torch.softmax(outputs_u, dim=1)
+        #
+        #         Lu = F.kl_div(probs_u.log(), targets_u,
+        #                       None, None, 'batchmean')
+        #
+        #         Lu2 = torch.mean(torch.clamp(args.margin - torch.sum(
+        #             F.softmax(outputs_u_2, dim=1) * F.softmax(outputs_u_2, dim=1), dim=1), min=0))
+        #     else:
+        #         Lx = - \
+        #             torch.mean(torch.sum(F.log_softmax(
+        #                 outputs_x, dim=1) * targets_x, dim=1))
+        #
+        #         probs_u = torch.softmax(outputs_u, dim=1)
+        #         Lu = F.kl_div(probs_u.log(), targets_u,
+        #                       None, None, 'batchmean')
+        #
+        #         Lu2 = torch.mean(torch.clamp(args.margin - torch.sum(
+        #             F.softmax(outputs_u, dim=1) * F.softmax(outputs_u, dim=1), dim=1), min=0))
 
-                probs_u = torch.softmax(outputs_u, dim=1)
-
-                Lu = F.kl_div(probs_u.log(), targets_u,
-                              None, None, 'batchmean')
-
-                Lu2 = torch.mean(torch.clamp(args.margin - torch.sum(
-                    F.softmax(outputs_u_2, dim=1) * F.softmax(outputs_u_2, dim=1), dim=1), min=0))
-            else:
-                Lx = - \
-                    torch.mean(torch.sum(F.log_softmax(
-                        outputs_x, dim=1) * targets_x, dim=1))
-
-                probs_u = torch.softmax(outputs_u, dim=1)
-                Lu = F.kl_div(probs_u.log(), targets_u,
-                              None, None, 'batchmean')
-
-                Lu2 = torch.mean(torch.clamp(args.margin - torch.sum(
-                    F.softmax(outputs_u, dim=1) * F.softmax(outputs_u, dim=1), dim=1), min=0))
-
-        return Lx, Lu, args.lambda_u * linear_rampup(epoch), Lu2, args.lambda_u_hinge * linear_rampup(epoch)
+        return Lx, Lu, args.lambda_u * linear_rampup(epoch)
 
 
 if __name__ == '__main__':

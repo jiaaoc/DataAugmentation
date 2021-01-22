@@ -63,7 +63,7 @@ parser.add_argument('--temp-change', default=1000000, type=int)
 parser.add_argument('--data-path', type=str, default='yahoo_answers_csv/',
                     help='path to data folders')
 
-parser.add_argument('--n-labeled', type=int, default=None,
+parser.add_argument('--n-labeled', type=int, default=10,
                     help='number of labeled data')
 
 parser.add_argument('--un-labeled', default=5000, type=int,
@@ -219,6 +219,8 @@ def validate(valloader, model, criterion, epoch, mode):
 
         for batch_idx, (inputs, targets, length) in enumerate(valloader):
             inputs, targets = inputs.cuda(), targets.cuda(non_blocking=True)
+
+
             outputs = model(inputs)
             loss = criterion(outputs, targets)
 
