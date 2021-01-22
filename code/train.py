@@ -20,7 +20,6 @@ from torch.autograd import Variable
 from torch.utils.data import Dataset
 import json
 from code.read_data import *
-from mixtext import MixText
 
 
 logger = logging.getLogger(__name__)
