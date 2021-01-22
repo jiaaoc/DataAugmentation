@@ -22,7 +22,7 @@ import json
 from code.read_data import *
 
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
 
 
@@ -90,7 +90,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 n_gpu = torch.cuda.device_count()
 args.n_gpu = n_gpu
 
-logger.info("Training/evaluation parameters %s", args)
+# logger.info("Training/evaluation parameters %s", args)
 
 best_acc = 0
 total_steps = 0
@@ -99,10 +99,10 @@ flag = 0
 
 def main():
 
-    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                        datefmt='%m/%d/%Y %H:%M:%S',
-                        level=logging.INFO)
-    logger.warning("Device: %s, n_gpu: %s", device, args.n_gpu)
+    # logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+    #                     datefmt='%m/%d/%Y %H:%M:%S',
+    #                     level=logging.INFO)
+    # logger.warning("Device: %s, n_gpu: %s", device, args.n_gpu)
 
 
     global best_acc
@@ -143,13 +143,13 @@ def main():
 
     test_accs = []
 
-    logger.info("***** Running training *****")
-    logger.info("  Num labeled examples = %d", len(labeled_trainloader))
-    logger.info("  Num unlabeled examples = %d", len(unlabeled_trainloader))
-    logger.info("  Num Epochs = %d", args.epochs)
-    logger.info("  LAM_u = %s" % str(args.lambda_u))
-    logger.info("  Batch size = %d" % args.batch_size)
-    logger.info("  Max seq length = %d" % 256)
+    # logger.info("***** Running training *****")
+    # logger.info("  Num labeled examples = %d", len(labeled_trainloader))
+    # logger.info("  Num unlabeled examples = %d", len(unlabeled_trainloader))
+    # logger.info("  Num Epochs = %d", args.epochs)
+    # logger.info("  LAM_u = %s" % str(args.lambda_u))
+    # logger.info("  Batch size = %d" % args.batch_size)
+    # logger.info("  Max seq length = %d" % 256)
 
     underscore_data_path = os.path.split(os.path.split(args.data_path)[0])[1].replace("/", "_")
     file_name = "_".join([underscore_data_path, str(args.n_labeled), str(args.un_labeled), str(args.transform_type)])
