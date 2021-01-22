@@ -19,7 +19,7 @@ from code.normal_bert import ClassificationBert
 from torch.autograd import Variable
 from torch.utils.data import Dataset
 import json
-from read_data import *
+from code.read_data import *
 from mixtext import MixText
 
 
