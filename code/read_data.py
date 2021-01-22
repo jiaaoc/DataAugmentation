@@ -42,7 +42,12 @@ class Augmentor:
         elif transform_type == 'RandomSwapping':
             pass
         elif transform_type == 'WordReplacementLM':
-            pass
+            self.transform = []
+            # Pre-processed German data
+            with open(path + 'mlm.pkl', 'rb') as f:
+                mlm = pickle.load(f)
+                self.transform.append(mlm)
+
         elif transform_type == 'BackTranslation':
             self.transform = []
             # Pre-processed German data
@@ -68,7 +73,8 @@ class Augmentor:
         elif self.transform_type == 'RandomSwapping':
             augmented_data = random_flip(ori, 0.3, self.transform_times)
         elif self.transform_type == 'WordReplacementLM':
-            pass
+            for i in range(0, self.transform_times):
+                augmented_data.append(self.transform[0][idx][i])
         elif self.transform_type == 'BackTranslation':
             for i in range(0, self.transform_times):
                 augmented_data.append(self.transform[0][idx][i])
