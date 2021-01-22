@@ -2,9 +2,8 @@
 
 data_path=$1
 batch_size=$2
-transform_type=$3
-n_labeled=$4
-un-labeled=$5
+batch_size_u=$3
+transform_type=$4
+n_labeled=$5
 
-python -m code.train --data-path=$data_path --batch-size=$batch_size --transform-type=$transform_type --n-labeled=$n_labeled --epochs=20 --un-labeled=$un-labeled
-
+python -m code.train --data-path=$data_path --batch-size=$batch_size --batch-size-u=$batch_size_u --transform-type=$transform_type --n-labeled=$n_labeled --epochs=50

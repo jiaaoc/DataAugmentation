@@ -67,7 +67,7 @@ parser.add_argument('--data-path', type=str, default='yahoo_answers_csv/',
 parser.add_argument('--n-labeled', type=int, default=20,
                     help='number of labeled data')
 
-parser.add_argument('--un-labeled', default=5000, type=int,
+parser.add_argument('--un-labeled', default=20000, type=int,
                     help='number of unlabeled data')
 
 

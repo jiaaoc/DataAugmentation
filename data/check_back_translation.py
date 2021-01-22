@@ -11,6 +11,8 @@ def check_backtranslation(original_file, backtranslation_file):
     with open(backtranslation_file, 'rb') as f:
         backtranslation_data = pickle.load(f)
 
+    import ipdb; ipdb.set_trace()
+
     ctr = 0
     for (k, v) in backtranslation_data.items():
         if len(v) > 0:
@@ -23,6 +25,8 @@ def update_backtranslation(backtranslation_file):
     with open(backtranslation_file, 'rb') as f:
         backtranslation_data = pickle.load(f)
 
+    import ipdb; ipdb.set_trace()
+
     new_backtranslation_data = {}
     ctr = 0
     for (k, v) in backtranslation_data.items():
@@ -30,8 +34,8 @@ def update_backtranslation(backtranslation_file):
             new_backtranslation_data[ctr] = v
             ctr += 1
 
-    with open('processed_data/hs/de_1.pkl', 'wb+') as f:
-        pickle.dump(new_backtranslation_data, f)
+    # with open('processed_data/hs/de_1.pkl', 'wb+') as f:
+    #     pickle.dump(new_backtranslation_data, f)
 
 
 if __name__ == "__main__":
@@ -40,5 +44,5 @@ if __name__ == "__main__":
     parser.add_argument('-b', "--back_translation_file", required=True)
     args = parser.parse_args()
 
-    # check_backtranslation(args.original_file, args.back_translation_file)
-    update_backtranslation(args.back_translation_file)
+    check_backtranslation(args.original_file, args.back_translation_file)
+    # update_backtranslation(args.back_translation_file)

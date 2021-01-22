@@ -116,10 +116,13 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
      val_df = None
      if "hs" in data_path or "20_ng" in data_path or "bias" in data_path or "pubmed" in data_path:
          train_df = read_csv(data_path+'train.csv')
+
+         if "pubmed" in data_path:
+             train_df = train_df[:130000]
+
          test_df = read_csv(data_path+'test.csv')
          if os.path.exists(data_path+'dev.csv'):
              val_df = read_csv(data_path+'dev.csv')
-
              val_labels = np.array([u-1 for u in val_df[0]])
              val_text = np.array([v for v in val_df[2]])
 
