@@ -331,3 +331,4 @@ def word_flip(text, alpha, num_aug, set_words):
             list_agmnt.append(TreebankWordDetokenizer().detokenize(agmnt_list_wrds))
 
     return list_agmnt
+
