@@ -126,8 +126,8 @@ def main():
 
 
     model = ClassificationBert(n_labels).cuda()
-    if args.n_gpu > 1:
-        model = nn.DataParallel(model)
+    # if args.n_gpu > 1:
+    #     model = nn.DataParallel(model)
     
     optimizer = AdamW(
         [
