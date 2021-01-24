@@ -330,8 +330,9 @@ def get_glue_data(datapath, n_labeled_per_class, unlabeled_per_class=5000, max_s
 
         if n_labeled_per_class == -1:
             top_k = None
-
-        train_labels, train_text_1, train_text_2 = read_glue(datasets["train"], top_k=20000)
+        else:
+            top_k = (n_labeled_per_class + 20000) * 3
+        train_labels, train_text_1, train_text_2 = read_glue(datasets["train"], top_k=top_k)
         val_labels, val_text_1, val_text_2 = read_glue(datasets["validation_matched"])
         second_val_labels, second_val_text_1, second_val_text_2 = read_glue(datasets["validation_mismatched"])
         test_labels, test_text_1, test_text_2 = read_glue(datasets["test_matched"])

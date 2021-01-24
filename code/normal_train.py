@@ -190,7 +190,10 @@ def main():
 
     test_accs = []
 
-    underscore_data_path = os.path.split(os.path.split(args.data_path)[0])[1].replace("/", "_")
+    if "mnli" in args.data_path:
+        underscore_data_path = "mnli"
+    else:
+        underscore_data_path = os.path.split(os.path.split(args.data_path)[0])[1].replace("/", "_")
     file_name = "_".join([underscore_data_path, str(args.n_labeled), str(args.un_labeled), str(args.transform_type)])
 
     data_directory = os.path.join("exp_out", underscore_data_path)
