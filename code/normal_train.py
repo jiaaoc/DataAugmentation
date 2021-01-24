@@ -9,6 +9,8 @@ import json
 # from transformers.utils.logging import logging
 
 from sklearn.metrics import f1_score
+from datasets import load_dataset, load_metric
+
 
 import numpy as np
 import torch
@@ -18,6 +20,7 @@ import torch.utils.data as Data
 # from pytorch_transformers import *
 from torch.autograd import Variable
 from torch.utils.data import Dataset
+
 
 from code.read_data import *
 from code.normal_bert import ClassificationBert
@@ -106,26 +109,67 @@ def main():
         os.mkdir(args.output_dir)
 
 
+
     # logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
     #                     datefmt='%m/%d/%Y %H:%M:%S',
     #                     level=logging.INFO)
     # logger.warning("Device: %s, n_gpu: %s", device, args.n_gpu)
 
-    train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
-        args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug,
-        transform_type=args.transform_type, transform_times = args.transform_times)
+    # Some models have set the order of the labels to use, so let's make sure we do use it.
+    label_to_id = None
+    # if (
+    #     model.config.label2id != PretrainedConfig(num_labels=num_labels).label2id
+    #     and data_args.task_name is not None
+    #     and is_regression
+    # ):
+    #     # Some have all caps in their config, some don't.
+    #     label_name_to_id = {k.lower(): v for k, v in model.config.label2id.items()}
+    #     if list(sorted(label_name_to_id.keys())) == list(sorted(label_list)):
+    #         label_to_id = {i: label_name_to_id[label_list[i]] for i in range(num_labels)}
+    #     else:
+    #         logger.warn(
+    #             "Your model seems to have been trained with labels, but they don't match the dataset: ",
+    #             f"model labels: {list(sorted(label_name_to_id.keys()))}, dataset labels: {list(sorted(label_list))}."
+    #             "\nIgnoring the model labels as a result.",
+    #         )
+    # elif data_args.task_name is None and not is_regression:
+    #     label_to_id = {v: i for i, v in enumerate(label_list)}
+    #
 
-    labeled_trainloader = Data.DataLoader(
-        dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
-    # unlabeled_trainloader = Data.DataLoader(
-    #     dataset=train_unlabeled_set, batch_size=args.batch_size_u, shuffle=True)
-    val_loader = Data.DataLoader(
-        dataset=val_set, batch_size=args.test_batch_size, shuffle=False)
-    test_loader = Data.DataLoader(
-        dataset=test_set, batch_size=args.test_batch_size, shuffle=False)
+    if "mnli" in args.data_path:
+        train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_glue_data(args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug, transform_type=args.transform_type, transform_times = args.transform_times)
+
+        labeled_trainloader = Data.DataLoader(
+            dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
+        # unlabeled_trainloader = Data.DataLoader(
+        #     dataset=train_unlabeled_set, batch_size=args.batch_size_u, shuffle=True)
+        val_loader = Data.DataLoader(
+            dataset=val_set, batch_size=args.test_batch_size, shuffle=False)
+        test_loader = Data.DataLoader(
+            dataset=test_set, batch_size=args.test_batch_size, shuffle=False)
+
+
+
+    else:
+        train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
+            args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug,
+            transform_type=args.transform_type, transform_times = args.transform_times)
+
+        labeled_trainloader = Data.DataLoader(
+            dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
+        # unlabeled_trainloader = Data.DataLoader(
+        #     dataset=train_unlabeled_set, batch_size=args.batch_size_u, shuffle=True)
+        val_loader = Data.DataLoader(
+            dataset=val_set, batch_size=args.test_batch_size, shuffle=False)
+        test_loader = Data.DataLoader(
+            dataset=test_set, batch_size=args.test_batch_size, shuffle=False)
+
 
 
     model = ClassificationBert(n_labels).cuda()
+
+    import ipdb; ipdb.set_trace()
+
     # if args.n_gpu > 1:
     #     model = nn.DataParallel(model)
     

@@ -58,6 +58,8 @@ parser.add_argument('--T', default=0.5, type=float,
 
 parser.add_argument('--temp-change', default=1000000, type=int)
 
+parser.add_argument('--grad-accum-factor', default=1, type=int)
+
 
 # Datasets
 parser.add_argument('--data-path', type=str, default='yahoo_answers_csv/',
@@ -226,7 +228,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         args.T = 0.9
         flag = 1
 
-    for batch_idx in range(args.val_iteration):
+    for batch_idx in range(args.val_iteration * args.grad_accum_factor):
 
         total_steps += 1
 
@@ -414,9 +416,14 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         #max_grad_norm = 1.0
         #torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
-        optimizer.zero_grad()
+
+        loss = loss / args.grad_accum_factor
         loss.backward()
-        optimizer.step()
+
+        if batch_idx % args.grad_accum_factor:
+            optimizer.step()
+            optimizer.zero_grad()
+
         # scheduler.step()
 
         # if batch_idx % 1000 == 0:
@@ -424,7 +431,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         #         epoch, batch_idx, loss.item(), Lx.item(), Lu.item(), Lu2.item()))
         print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
                 epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))
-
+        # print("Batch Idx %d " % batch_idx)
 
 def validate(valloader, model, criterion, epoch, mode):
     model.eval()
