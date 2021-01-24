@@ -41,9 +41,9 @@ parser.add_argument('--epochs', default=10, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--batch-size', default=4, type=int, metavar='N',
                     help='train batchsize')
-parser.add_argument('--test-batch-size', default=24, type=int, metavar='N',
+parser.add_argument('--test-batch-size', default=48, type=int, metavar='N',
                     help='train batchsize')
-parser.add_argument('--batch-size-u', default=24, type=int, metavar='N',
+parser.add_argument('--batch-size-u', default=48, type=int, metavar='N',
                     help='train batchsize')
 parser.add_argument('--val-iteration', type=int, default=200,
                     help='frequency of evaluation')
@@ -137,18 +137,26 @@ def main():
     #
 
     if "mnli" in args.data_path:
-        train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_glue_data(args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug, transform_type=args.transform_type, transform_times = args.transform_times)
+        train_labeled_set, train_unlabeled_set, val_set, second_val_set, test_set, second_test_set, n_labels = get_glue_data(args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug, transform_type=args.transform_type, transform_times = args.transform_times)
 
         labeled_trainloader = Data.DataLoader(
             dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
         # unlabeled_trainloader = Data.DataLoader(
         #     dataset=train_unlabeled_set, batch_size=args.batch_size_u, shuffle=True)
+
         val_loader = Data.DataLoader(
             dataset=val_set, batch_size=args.test_batch_size, shuffle=False)
+        second_val_loader = None
+        if second_val_set is not None:
+            second_val_loader = Data.DataLoader(
+            dataset=second_val_set, batch_size=args.test_batch_size, shuffle=False)
+
         test_loader = Data.DataLoader(
             dataset=test_set, batch_size=args.test_batch_size, shuffle=False)
-
-
+        second_test_loader = None
+        if second_test_set is not None:
+            second_test_loader = Data.DataLoader(
+            dataset=second_test_set, batch_size=args.test_batch_size, shuffle=False)
 
     else:
         train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
@@ -167,8 +175,6 @@ def main():
 
 
     model = ClassificationBert(n_labels).cuda()
-
-    import ipdb; ipdb.set_trace()
 
     # if args.n_gpu > 1:
     #     model = nn.DataParallel(model)
@@ -210,11 +216,18 @@ def main():
 
         val_loss, val_acc, val_f1 = validate(
             val_loader, model, criterion, epoch, mode='Valid Stats')
-        logger.info("******Epoch {}, val acc {}, val loss {}, val f1 {} ******".format(epoch, val_acc, val_loss, val_f1))
+        second_val_loss = 0; second_val_acc = 0; second_val_f1 = 0
 
-        print("epoch {}, val acc {}, val_loss {} val f1 {}".format(
-            epoch, val_acc, val_loss, val_f1))
-        f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}) + '\n')
+        if second_val_loader is not None:
+            second_val_loss, second_val_acc, second_val_f1 = validate(
+                second_val_loader, model, criterion, epoch, mode='Valid Stats')
+
+        logger.info("******Epoch {}, val acc {}, val loss {}, val f1 {} second val acc {} second val loss {} second val f1 {} ******".format( \
+            epoch, val_acc, val_loss, val_f1, second_val_acc, second_val_loss, second_val_f1))
+
+        print("epoch {}, val acc {}, val_loss {} val f1 {}  second val acc {} second val loss {} second val f1 {} ".format(
+            epoch, val_acc, val_loss, val_f1, second_val_acc, second_val_loss, second_val_f1))
+        f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1, "second_val_acc": second_val_acc, "second_val_f1": second_val_f1}) + '\n')
 
         if val_acc >= best_acc:
             best_acc = val_acc
@@ -230,9 +243,15 @@ def main():
         print('Epoch: ', epoch)
 
     model.load_state_dict(torch.load(file + ".pt"))
+    second_test_loss = 0; second_test_acc = 0; second_test_f1 = 0
     test_loss, test_acc, test_f1 = validate(
         test_loader, model, criterion, epoch, mode='Test Stats ')
-    f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
+
+    if second_test_loader is not None:
+        second_test_loss, second_test_acc, second_test_f1 = validate(
+            second_test_loader, model, criterion, epoch, mode='Test Stats ')
+
+    f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1, "second_test_acc": second_test_acc, "second_test_f1": second_test_f1}) + '\n')
     test_accs.append(test_acc)
 
     print('Best acc:')

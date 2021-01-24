@@ -201,19 +201,20 @@ def read_csv(datapath):
      return [list_labels, list_idx, list_text]
 
 
-def read_glue(datasets):
-    list_labels = []
-    list_text_1 = []
-    list_text_2 = []
+def read_glue(datasets, top_k=None):
 
-    import ipdb; ipdb.set_trace()
+    if top_k is None:
+        datasets_list = datasets[:len(datasets)]
+    else:
+        datasets_list = datasets[:top_k]
 
-    for ctr, point in enumerate(datasets):
-        list_labels.append(point["label"])
-        list_text_1.append(point["premise"])
-        list_text_2.append(point["hypothesis"])
 
-    return [list_labels, list_text_1, list_text_2]
+
+    list_labels = datasets_list["label"]
+    list_text_1 = datasets_list["premise"]
+    list_text_2 = datasets_list["hypothesis"]
+
+    return [np.asarray(list_labels), np.asarray(list_text_1), np.asarray(list_text_2)]
 
 
 def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False, transform_type='BackTranslation', transform_times = 2):
@@ -292,7 +293,7 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
 def get_glue_data(datapath, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False, transform_type='BackTranslation', transform_times = 2):
 
     if "mnli" in datapath:
-        datasets = load_dataset("glue", "mnli")
+        datasets = load_dataset("glue", datapath)
 
     padding = "max_length"
 
@@ -322,17 +323,23 @@ def get_glue_data(datapath, n_labeled_per_class, unlabeled_per_class=5000, max_s
 
 
     test_labels = map(lambda x: x["label"], datasets["test_matched"])
+    second_val_labels = None
+    second_test_labels = None
 
     if "mnli" in datapath:
-        train_labels, train_text_1, train_text_2 = read_glue(datasets["train"][:20000])
+
+        if n_labeled_per_class == -1:
+            top_k = None
+
+        train_labels, train_text_1, train_text_2 = read_glue(datasets["train"], top_k=20000)
         val_labels, val_text_1, val_text_2 = read_glue(datasets["validation_matched"])
+        second_val_labels, second_val_text_1, second_val_text_2 = read_glue(datasets["validation_mismatched"])
         test_labels, test_text_1, test_text_2 = read_glue(datasets["test_matched"])
+        second_test_labels, second_test_text_1, second_test_text_2 = read_glue(datasets["test_mismatched"])
 
     n_labels = len(set(train_labels))
 
     train_labeled_idxs, train_unlabeled_idxs = train_split(train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
-
-    import ipdb; ipdb.set_trace()
 
 
     train_labeled_dataset = glue_loader_labeled(
@@ -343,20 +350,29 @@ def get_glue_data(datapath, n_labeled_per_class, unlabeled_per_class=5000, max_s
     #     train_text_1[train_unlabeled_idxs], train_text_2[train_unlabeled_idxs], tokenizer, max_seq_len,
     #     Augmentor(datapath, transform_type, transform_times))
 
-    num_train = len(datasets["train"])
-    num_val = len(datasets["val"])
-    num_test = len(datasets["test"])
+
+    num_train = train_labels.shape[0]
+    num_val = val_labels.shape[0]
+    num_test = test_labels.shape[0]
 
     val_idx = range(num_train, num_train+num_val)
     test_idx = range(num_train+num_val, num_train+num_val+num_test)
 
     val_dataset = glue_loader_labeled(
         val_text_1, val_text_2, val_labels, val_idx, tokenizer, max_seq_len)
+    second_val_dataset = None
+    if second_val_labels is not None:
+        second_val_dataset = glue_loader_labeled(
+            second_val_text_1, second_val_text_2, second_val_labels, val_idx, tokenizer, max_seq_len)
 
     test_dataset = glue_loader_labeled(
         test_text_1, test_text_2, test_labels, test_idx, tokenizer, max_seq_len)
+    second_test_dataset = None
+    if second_test_labels is not None:
+        second_test_dataset =  glue_loader_labeled(
+        second_test_text_1, second_test_text_2, second_test_labels, test_idx, tokenizer, max_seq_len)
 
-    return train_labeled_dataset, None, val_dataset, test_dataset, n_labels
+    return train_labeled_dataset, None, val_dataset, second_val_dataset, test_dataset, second_test_dataset, n_labels
 
 
 def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, seed=0):
@@ -546,7 +562,7 @@ class glue_loader_labeled(Dataset):
                 labels.append(self.labels[idx])
                 tokenized_sentence_length.append(length_u)
 
-            encode_result_ori, length_ori = self.get_tokenized(ori)
+            encode_result_ori, length_ori = self.get_tokenized(ori, ori_2)
             tokenized_data.append(torch.tensor(encode_result_ori))
             labels.append(self.labels[idx])
             tokenized_sentence_length.append(length_ori)
