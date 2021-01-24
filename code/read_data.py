@@ -539,7 +539,8 @@ class glue_loader_labeled(Dataset):
         return len(self.labels)
 
     def get_tokenized(self, text_1, text_2):
-        tokens = self.tokenizer.tokenize(text_1, text_2)
+        tokens = self.tokenizer.tokenize(text_1, text_2, add_special_tokens=True)
+
         if len(tokens) > self.max_seq_len:
             tokens = tokens[:self.max_seq_len]
         length = len(tokens)
@@ -547,6 +548,8 @@ class glue_loader_labeled(Dataset):
         encode_result = self.tokenizer.convert_tokens_to_ids(tokens)
         padding = [0] * (self.max_seq_len - len(encode_result))
         encode_result += padding
+
+
 
         return encode_result, length
 
