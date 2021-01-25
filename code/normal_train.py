@@ -48,9 +48,9 @@ parser.add_argument('--batch-size-u', default=48, type=int, metavar='N',
 parser.add_argument('--val-iteration', type=int, default=200,
                     help='frequency of evaluation')
 
-parser.add_argument('--lrmain', '--learning-rate-bert', default=0.00001, type=float,
+parser.add_argument('--lrmain', '--learning-rate-bert', default=0.00002, type=float,
                     metavar='LR', help='initial learning rate for bert')
-parser.add_argument('--lrlast', '--learning-rate-model', default=0.001, type=float,
+parser.add_argument('--lrlast', '--learning-rate-model', default=0.00002, type=float,
                     metavar='LR', help='initial learning rate for models')
 
 parser.add_argument('--lambda-u', default=1, type=float,
