@@ -9,6 +9,8 @@ import json
 # from transformers.utils.logging import logging
 
 from sklearn.metrics import f1_score
+from datasets import load_dataset, load_metric
+
 
 import numpy as np
 import torch
@@ -18,6 +20,7 @@ import torch.utils.data as Data
 # from pytorch_transformers import *
 from torch.autograd import Variable
 from torch.utils.data import Dataset
+
 
 from code.read_data import *
 from code.normal_bert import ClassificationBert
@@ -38,16 +41,16 @@ parser.add_argument('--epochs', default=10, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--batch-size', default=4, type=int, metavar='N',
                     help='train batchsize')
-parser.add_argument('--test-batch-size', default=24, type=int, metavar='N',
+parser.add_argument('--test-batch-size', default=48, type=int, metavar='N',
                     help='train batchsize')
-parser.add_argument('--batch-size-u', default=24, type=int, metavar='N',
+parser.add_argument('--batch-size-u', default=48, type=int, metavar='N',
                     help='train batchsize')
 parser.add_argument('--val-iteration', type=int, default=200,
                     help='frequency of evaluation')
 
-parser.add_argument('--lrmain', '--learning-rate-bert', default=0.00001, type=float,
+parser.add_argument('--lrmain', '--learning-rate-bert', default=0.00002, type=float,
                     metavar='LR', help='initial learning rate for bert')
-parser.add_argument('--lrlast', '--learning-rate-model', default=0.001, type=float,
+parser.add_argument('--lrlast', '--learning-rate-model', default=0.00002, type=float,
                     metavar='LR', help='initial learning rate for models')
 
 parser.add_argument('--lambda-u', default=1, type=float,
@@ -106,28 +109,75 @@ def main():
         os.mkdir(args.output_dir)
 
 
+
     # logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
     #                     datefmt='%m/%d/%Y %H:%M:%S',
     #                     level=logging.INFO)
     # logger.warning("Device: %s, n_gpu: %s", device, args.n_gpu)
 
-    train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
-        args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug,
-        transform_type=args.transform_type, transform_times = args.transform_times)
+    # Some models have set the order of the labels to use, so let's make sure we do use it.
+    label_to_id = None
+    # if (
+    #     model.config.label2id != PretrainedConfig(num_labels=num_labels).label2id
+    #     and data_args.task_name is not None
+    #     and is_regression
+    # ):
+    #     # Some have all caps in their config, some don't.
+    #     label_name_to_id = {k.lower(): v for k, v in model.config.label2id.items()}
+    #     if list(sorted(label_name_to_id.keys())) == list(sorted(label_list)):
+    #         label_to_id = {i: label_name_to_id[label_list[i]] for i in range(num_labels)}
+    #     else:
+    #         logger.warn(
+    #             "Your model seems to have been trained with labels, but they don't match the dataset: ",
+    #             f"model labels: {list(sorted(label_name_to_id.keys()))}, dataset labels: {list(sorted(label_list))}."
+    #             "\nIgnoring the model labels as a result.",
+    #         )
+    # elif data_args.task_name is None and not is_regression:
+    #     label_to_id = {v: i for i, v in enumerate(label_list)}
+    #
 
-    labeled_trainloader = Data.DataLoader(
-        dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
-    # unlabeled_trainloader = Data.DataLoader(
-    #     dataset=train_unlabeled_set, batch_size=args.batch_size_u, shuffle=True)
-    val_loader = Data.DataLoader(
-        dataset=val_set, batch_size=args.test_batch_size, shuffle=False)
-    test_loader = Data.DataLoader(
-        dataset=test_set, batch_size=args.test_batch_size, shuffle=False)
+    if "mnli" in args.data_path:
+        train_labeled_set, train_unlabeled_set, val_set, second_val_set, test_set, second_test_set, n_labels = get_glue_data(args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug, transform_type=args.transform_type, transform_times = args.transform_times)
+
+        labeled_trainloader = Data.DataLoader(
+            dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
+        # unlabeled_trainloader = Data.DataLoader(
+        #     dataset=train_unlabeled_set, batch_size=args.batch_size_u, shuffle=True)
+
+        val_loader = Data.DataLoader(
+            dataset=val_set, batch_size=args.test_batch_size, shuffle=False)
+        second_val_loader = None
+        if second_val_set is not None:
+            second_val_loader = Data.DataLoader(
+            dataset=second_val_set, batch_size=args.test_batch_size, shuffle=False)
+
+        test_loader = Data.DataLoader(
+            dataset=test_set, batch_size=args.test_batch_size, shuffle=False)
+        second_test_loader = None
+        if second_test_set is not None:
+            second_test_loader = Data.DataLoader(
+            dataset=second_test_set, batch_size=args.test_batch_size, shuffle=False)
+
+    else:
+        train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(
+            args.data_path, args.n_labeled, args.un_labeled, model=args.model, train_aug=args.train_aug,
+            transform_type=args.transform_type, transform_times = args.transform_times)
+
+        labeled_trainloader = Data.DataLoader(
+            dataset=train_labeled_set, batch_size=args.batch_size, shuffle=True)
+        # unlabeled_trainloader = Data.DataLoader(
+        #     dataset=train_unlabeled_set, batch_size=args.batch_size_u, shuffle=True)
+        val_loader = Data.DataLoader(
+            dataset=val_set, batch_size=args.test_batch_size, shuffle=False)
+        test_loader = Data.DataLoader(
+            dataset=test_set, batch_size=args.test_batch_size, shuffle=False)
+
 
 
     model = ClassificationBert(n_labels).cuda()
-    if args.n_gpu > 1:
-        model = nn.DataParallel(model)
+
+    # if args.n_gpu > 1:
+    #     model = nn.DataParallel(model)
     
     optimizer = AdamW(
         [
@@ -140,7 +190,10 @@ def main():
 
     test_accs = []
 
-    underscore_data_path = os.path.split(os.path.split(args.data_path)[0])[1].replace("/", "_")
+    if "mnli" in args.data_path:
+        underscore_data_path = "mnli"
+    else:
+        underscore_data_path = os.path.split(os.path.split(args.data_path)[0])[1].replace("/", "_")
     file_name = "_".join([underscore_data_path, str(args.n_labeled), str(args.un_labeled), str(args.transform_type)])
 
     data_directory = os.path.join("exp_out", underscore_data_path)
@@ -166,11 +219,18 @@ def main():
 
         val_loss, val_acc, val_f1 = validate(
             val_loader, model, criterion, epoch, mode='Valid Stats')
-        logger.info("******Epoch {}, val acc {}, val loss {}, val f1 {} ******".format(epoch, val_acc, val_loss, val_f1))
+        second_val_loss = 0; second_val_acc = 0; second_val_f1 = 0
 
-        print("epoch {}, val acc {}, val_loss {} val f1 {}".format(
-            epoch, val_acc, val_loss, val_f1))
-        f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}) + '\n')
+        if second_val_loader is not None:
+            second_val_loss, second_val_acc, second_val_f1 = validate(
+                second_val_loader, model, criterion, epoch, mode='Valid Stats')
+
+        logger.info("******Epoch {}, val acc {}, val loss {}, val f1 {} second val acc {} second val loss {} second val f1 {} ******".format( \
+            epoch, val_acc, val_loss, val_f1, second_val_acc, second_val_loss, second_val_f1))
+
+        print("epoch {}, val acc {}, val_loss {} val f1 {}  second val acc {} second val loss {} second val f1 {} ".format(
+            epoch, val_acc, val_loss, val_f1, second_val_acc, second_val_loss, second_val_f1))
+        f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1, "second_val_acc": second_val_acc, "second_val_f1": second_val_f1}) + '\n')
 
         if val_acc >= best_acc:
             best_acc = val_acc
@@ -186,9 +246,15 @@ def main():
         print('Epoch: ', epoch)
 
     model.load_state_dict(torch.load(file + ".pt"))
+    second_test_loss = 0; second_test_acc = 0; second_test_f1 = 0
     test_loss, test_acc, test_f1 = validate(
         test_loader, model, criterion, epoch, mode='Test Stats ')
-    f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
+
+    if second_test_loader is not None:
+        second_test_loss, second_test_acc, second_test_f1 = validate(
+            second_test_loader, model, criterion, epoch, mode='Test Stats ')
+
+    f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1, "second_test_acc": second_test_acc, "second_test_f1": second_test_f1}) + '\n')
     test_accs.append(test_acc)
 
     print('Best acc:')
