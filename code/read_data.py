@@ -324,8 +324,9 @@ class loader_labeled(Dataset):
 
     def get_tokenized(self, text):
         tokens = self.tokenizer.tokenize(text)
-        if len(tokens) > self.max_seq_len:
-            tokens = tokens[:self.max_seq_len]
+        if len(tokens) > self.max_seq_len - 2:
+            tokens = tokens[:self.max_seq_len - 2]
+        tokens = ['[CLS]'] + tokens + ['[SEP]']
         length = len(tokens)
 
         encode_result = self.tokenizer.convert_tokens_to_ids(tokens)
@@ -383,8 +384,9 @@ class loader_unlabeled(Dataset):
 
     def get_tokenized(self, text):
         tokens = self.tokenizer.tokenize(text)
-        if len(tokens) > self.max_seq_len:
-            tokens = tokens[:self.max_seq_len]
+        if len(tokens) > self.max_seq_len - 2:
+            tokens = tokens[:self.max_seq_len - 2]
+        tokens = ['[CLS]'] + tokens + ['[SEP]']
         length = len(tokens)
         encode_result = self.tokenizer.convert_tokens_to_ids(tokens)
         padding = [0] * (self.max_seq_len - len(encode_result))
