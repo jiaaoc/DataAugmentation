@@ -15,14 +15,13 @@ from sklearn.metrics import f1_score
 
 
 # from pytorch_transformers import *
-from code.normal_bert import ClassificationBert
+from code.CLS_model import CLS_model
 from torch.autograd import Variable
 from torch.utils.data import Dataset
 import json
 from code.read_data import *
 
 
-# logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
 
 
@@ -81,8 +80,14 @@ parser.add_argument('--transform-times', default=1, type=int,
                     help='number of augmentations per sample')
 
 
+parser.add_argument('-c', '--config', required=True)
+parser.add_argument('-k', '--kwargs', nargs='*', action=ParseKwargs)
 
 args = parser.parse_args()
+
+config = Config(args.config_file, args.kwargs)
+
+
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 use_cuda = torch.cuda.is_available()
@@ -98,12 +103,6 @@ flag = 0
 
 
 def main():
-
-    # logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-    #                     datefmt='%m/%d/%Y %H:%M:%S',
-    #                     level=logging.INFO)
-    # logger.warning("Device: %s, n_gpu: %s", device, args.n_gpu)
-
 
     global best_acc
     # Read dataset and build dataloaders
@@ -124,72 +123,40 @@ def main():
     test_loader = Data.DataLoader(
         dataset=test_set, batch_size=args.test_batch_size, shuffle=False)
 
-    # Define the model, set the optimizer
-    model = ClassificationBert(n_labels).cuda()
 
-    if args.n_gpu > 1:
+    #TODO: get number of labels
+    model = CLS_model(config, num_lables).to(device)
+
+    # # Define the model, set the optimizer
+    # model = ClassificationBert(n_labels).cuda()
+
+    if config.n_gpu > 1:
         model = nn.DataParallel(model)
     
-    optimizer = AdamW(
-        [
-            {"params": model.bert.parameters(), "lr": args.lrmain},
-            {"params": model.linear.parameters(), "lr": args.lrlast},
-        ])
+    optimizer = AdamW(lr=config.lr)
 
     train_criterion = SemiLoss()
     criterion = nn.CrossEntropyLoss()
 
     scheduler = None
 
-    test_accs = []
-
-    # logger.info("***** Running training *****")
-    # logger.info("  Num labeled examples = %d", len(labeled_trainloader))
-    # logger.info("  Num unlabeled examples = %d", len(unlabeled_trainloader))
-    # logger.info("  Num Epochs = %d", args.epochs)
-    # logger.info("  LAM_u = %s" % str(args.lambda_u))
-    # logger.info("  Batch size = %d" % args.batch_size)
-    # logger.info("  Max seq length = %d" % 256)
-
-    underscore_data_path = os.path.split(os.path.split(args.data_path)[0])[1].replace("/", "_")
-    file_name = "_".join([underscore_data_path, str(args.n_labeled), str(args.un_labeled), str(args.transform_type)])
-
-    data_directory = os.path.join("exp_out", "ssl_" + underscore_data_path)
-
-    if not os.path.exists(data_directory):
-        os.makedirs(data_directory)
-    file = os.path.join(data_directory, file_name)
-
-    f =  open(file, 'w+')
-
-
     # Start training
     for epoch in range(args.epochs):
-
         train(labeled_trainloader, unlabeled_trainloader, model, optimizer,
               scheduler, train_criterion, epoch, n_labels, args.train_aug)
 
         val_loss, val_acc, val_f1 = validate(
             val_loader, model, criterion, epoch, mode='Valid Stats')
 
+        print("epoch {}, val acc {}, val_loss {}".format(epoch, val_acc, val_loss))
 
-        logger.info("******Epoch {}, val acc {}, val loss {}******".format(epoch,val_acc, val_loss))
-
-        print("epoch {}, val acc {}, val_loss {}".format(
-            epoch, val_acc, val_loss))
-
-        f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}) + '\n')
-
+        with open(config.dev_score_file, 'a+') as f:
+            f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}) + '\n')
 
         if val_acc >= best_acc:
             best_acc = val_acc
-            torch.save(model.state_dict(), file + ".pt")
-            # test_loss, test_acc, test_f1 = validate(
-            #     test_loader, model, criterion, epoch, mode='Test Stats ')
-            # test_accs.append(test_acc)
-            # logger.info("******Epoch {}, test acc {}, test loss {}******".format(epoch, test_acc, test_loss))
-            # print("epoch {}, test acc {},test loss {}".format(
-            #     epoch, test_acc, test_loss))
+            torch.save(model.state_dict(), best_model_file)
+
 
     model.load_state_dict(torch.load(file + ".pt"))
     test_loss, test_acc, test_f1 = validate(
@@ -197,24 +164,8 @@ def main():
     f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
     test_accs.append(test_acc)
 
-    #     print('Epoch: ', epoch)
-    #
-    #     print('Best acc:')
-    #     print(best_acc)
-    #
-    #     print('Test acc:')
-    #     print(test_accs)
-    #
-    # logger.info("******Finished training, test acc {}******".format(test_accs[-1]))
-    # print("Finished training!")
-    # print('Best acc:')
-    # print(best_acc)
-    #
-    # print('Test acc:')
-    # print(test_accs)
 
-
-def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, scheduler, criterion, epoch, n_labels, train_aug=False):
+def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, criterion, epoch, n_labels, train_aug=False):
     labeled_train_iter = iter(labeled_trainloader)
     unlabeled_train_iter = iter(unlabeled_trainloader)
     model.train()
@@ -226,7 +177,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         args.T = 0.9
         flag = 1
 
-    for batch_idx in range(args.val_iteration):
+    for batch_idx in range(config.val_iteration):
 
         total_steps += 1
 
@@ -268,8 +219,6 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         inputs_u2 = inputs_u2.cuda()
         inputs_ori = inputs_ori.cuda()
 
-        mask = []
-
         with torch.no_grad():
             # Predict labels for unlabeled data.
             outputs_u = model(inputs_u)
@@ -307,8 +256,6 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         args.mix_layers_set = [1]
 
-        mix_layer = np.random.choice(args.mix_layers_set, 1)[0]
-        mix_layer = mix_layer - 1
 
         if not train_aug:
             all_inputs = torch.cat(
@@ -327,7 +274,6 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             #     [inputs_x_length, inputs_x_length, length_u, length_u2, length_ori], dim=0)
             all_targets = torch.cat(
                 [targets_x, targets_x, targets_u, targets_u, targets_u], dim=0)
-
 
 
         args.separate_mix = True
@@ -417,7 +363,6 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        # scheduler.step()
 
         # if batch_idx % 1000 == 0:
         # print("epoch {}, step {}, loss {}, Lx {}, Lu {}, Lu2 {}".format(

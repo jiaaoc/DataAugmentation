@@ -95,7 +95,10 @@ def read_csv(datapath):
      return [list_labels, list_idx, list_text]
 
 
-def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False, transform_type='BackTranslation', transform_times = 2):
+
+def get_data(config):
+
+     # def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_len=256, model='bert-base-uncased', train_aug=False, transform_type='BackTranslation', transform_times = 2):
      """Read data, split the dataset, and build dataset for dataloaders.
 
      Arguments:
@@ -110,10 +113,13 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
 
      """
      # Load the tokenizer for bert
-     tokenizer = BertTokenizer.from_pretrained(model)
+     tokenizer = AutoTokenizer.from_pretrained(config.pretrained_weight)
      # print(data_path+'train.csv')
 
+     data_path = config.data_path
+
      val_df = None
+     # Certain datasets do not conform to pandas
      if "hs" in data_path or "20_ng" in data_path or "bias" in data_path or "pubmed" in data_path:
          train_df = read_csv(data_path+'train.csv')
 
@@ -142,9 +148,9 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
      if val_df is None:
          # Split the labeled training set, unlabeled training set, development set
          train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
-         train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
+         train_labels, config.n_labeled_per_class, config.unlabeled_per_class, config.n_labels, config.dataset_path, config.seed)
      else:
-         train_labeled_idxs, train_unlabeled_idxs = train_split(train_labels, n_labeled_per_class, unlabeled_per_class, n_labels)
+         train_labeled_idxs, train_unlabeled_idxs = train_split(train_labels, config.n_labeled_per_class, config.unlabeled_per_class, config.n_labels, config.dataset_path, config.seed)
          val_idxs = np.arange(min(len(val_text), 2000))
 
      train_labeled_dataset = loader_labeled(
@@ -233,7 +239,7 @@ def get_data(data_path, n_labeled_per_class, unlabeled_per_class=5000, max_seq_l
 
 
 
-def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, seed=0):
+def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, dataset_path, seed=0):
     """Split the original training set into labeled training set, unlabeled training set, development set
 
     Arguments:
@@ -249,55 +255,82 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
         [list] -- idx for labeled training set, unlabeled training set, development set
     """
     np.random.seed(seed)
-    labels = np.array(labels)
-    train_labeled_idxs = []
-    train_unlabeled_idxs = []
 
-    num_data = len(labels)
 
-    num_val = int(0.25 * num_data)
-    idxs = np.arange(num_data)
-    val_idxs = idxs[-num_val:]
+    data_seed_path = os.path.join(dataset_path, seed)
 
-    if n_labeled_per_class == -1:
-        train_labeled_idxs = idxs[:-num_val]
-        train_unlabeled_idxs = []
+
+    if os.path.exists(data_seed_path):
+        train_labeled_idxs = pickle.load(open(os.path.join(data_seed_path, "train_lbl_idx.pkl"), 'rb'))
+        train_unlabeled_idxs = pickle.load(open(os.path.join(data_seed_path, "train_unlbl_idx.pkl"), 'rb'))
+        val_idxs = pickle.load(open(os.path.join(data_seed_path, "val_idx.pkl"), 'rb'))
     else:
-        train_labels = labels[:-num_val]
-        for i in range(n_labels):
-            lbl_idxs = np.where(train_labels == i)[0]
-            train_labeled_idxs.extend(lbl_idxs[:n_labeled_per_class])
-            train_unlabeled_idxs.extend(lbl_idxs[n_labeled_per_class:n_labeled_per_class+unlabeled_per_class])
+        labels = np.array(labels)
+        train_labeled_idxs = []
+        train_unlabeled_idxs = []
 
-    np.random.shuffle(train_labeled_idxs)
-    np.random.shuffle(train_unlabeled_idxs)
-    np.random.shuffle(val_idxs)
+        num_data = len(labels)
+
+        num_val = int(0.25 * num_data)
+        idxs = np.arange(num_data)
+        val_idxs = idxs[-num_val:]
+
+        if n_labeled_per_class == -1:
+            train_labeled_idxs = idxs[:-num_val]
+            train_unlabeled_idxs = []
+        else:
+            train_labels = labels[:-num_val]
+            for i in range(n_labels):
+                lbl_idxs = np.where(train_labels == i)[0]
+                train_labeled_idxs.extend(lbl_idxs[:n_labeled_per_class])
+                train_unlabeled_idxs.extend(lbl_idxs[n_labeled_per_class:n_labeled_per_class+unlabeled_per_class])
+
+        np.random.shuffle(train_labeled_idxs)
+        np.random.shuffle(train_unlabeled_idxs)
+        np.random.shuffle(val_idxs)
+
+        if not os.path.exists(data_seed_path):
+            os.makedirs(data_seed_path)
+
+        pickle.dump(train_labeled_idxs, open(os.path.join(data_seed_path, "train_lbl_idx.pkl"), 'wb+'))
+        pickle.dump(train_unlabeled_idxs, open(os.path.join(data_seed_path, "train_unlabeled_idxs.pkl"), 'wb+'))
+        pickle.dump(val_idxs, open(os.path.join(data_seed_path, "val_idxs.pkl"), 'wb+'))
 
     return train_labeled_idxs, train_unlabeled_idxs, val_idxs
 
 
 def train_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, seed=0):
-    np.random.seed(seed)
-    labels = np.array(labels)
-    train_labeled_idxs = []
-    train_unlabeled_idxs = []
+    data_seed_path = os.path.join(dataset_path, seed)
 
-    num_data = len(labels)
 
-    idxs = np.arange(num_data)
-
-    if n_labeled_per_class == -1:
-        train_labeled_idxs = idxs
-        train_unlabeled_idxs = []
+    if os.path.exists(data_seed_path):
+        train_labeled_idxs = pickle.load(open(os.path.join(data_seed_path, "train_lbl_idx.pkl"), 'rb'))
+        train_unlabeled_idxs = pickle.load(open(os.path.join(data_seed_path, "train_unlbl_idx.pkl"), 'rb'))
     else:
-        train_labels = labels
-        for i in range(n_labels):
-            lbl_idxs = np.where(train_labels == i)[0]
-            train_labeled_idxs.extend(lbl_idxs[:n_labeled_per_class])
-            train_unlabeled_idxs.extend(lbl_idxs[n_labeled_per_class:n_labeled_per_class+unlabeled_per_class])
+        np.random.seed(seed)
+        labels = np.array(labels)
+        train_labeled_idxs = []
+        train_unlabeled_idxs = []
 
-    np.random.shuffle(train_labeled_idxs)
-    np.random.shuffle(train_unlabeled_idxs)
+        num_data = len(labels)
+
+        idxs = np.arange(num_data)
+
+        if n_labeled_per_class == -1:
+            train_labeled_idxs = idxs
+            train_unlabeled_idxs = []
+        else:
+            train_labels = labels
+            for i in range(n_labels):
+                lbl_idxs = np.where(train_labels == i)[0]
+                train_labeled_idxs.extend(lbl_idxs[:n_labeled_per_class])
+                train_unlabeled_idxs.extend(lbl_idxs[n_labeled_per_class:n_labeled_per_class+unlabeled_per_class])
+
+        np.random.shuffle(train_labeled_idxs)
+        np.random.shuffle(train_unlabeled_idxs)
+
+        pickle.dump(train_labeled_idxs, open(os.path.join(data_seed_path, "train_lbl_idx.pkl"), 'wb+'))
+        pickle.dump(train_unlabeled_idxs, open(os.path.join(data_seed_path, "train_unlabeled_idxs.pkl"), 'wb+'))
 
     return train_labeled_idxs, train_unlabeled_idxs
 
