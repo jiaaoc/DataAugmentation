@@ -1,6 +1,7 @@
 import json
 import os
 import ast
+import datetime
 
 class Config(object):
     def __init__(self, filename=None, kwargs=None):
@@ -66,7 +67,17 @@ class Config(object):
         if not os.path.exists(base_dir):
             os.makedirs(base_dir)
 
-        self.exp_dir = os.path.join(base_dir, "seed_%d" % self.seed)
+        if self.n_labeled_per_class == -1:
+            now = datetime.datetime.now()
+            ts = "{:04d}-{:02d}-{:02d}-{:02d}-{:02d}-{:02d}".format(now.year, now.month, now.day, now.hour, now.minute,
+                                                                    now.second)
+            self.exp_dir = os.path.join(base_dir, ts)
+            if not os.path.exists(self.exp_dir):
+                os.makedirs(self.exp_dir)
+
+        else:
+            self.exp_dir = os.path.join(base_dir, "seed_%d" % self.seed)
+
 
         if not os.path.exists(self.exp_dir):
             os.makedirs(self.exp_dir)
