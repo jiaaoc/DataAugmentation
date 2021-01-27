@@ -4,7 +4,7 @@
     "datapath": "processed_data/ag_news_csv",
     "pretrained_weight": "bert-base-uncased",
     "is_classification": true,
-    "n_labeled_per_class": 10,
+    "n_labeled_per_class": 100,
     "unlabeled_per_class": 5000,
     "sharp_temperature": 1,
     "lambda_u": 1,

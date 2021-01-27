@@ -17,7 +17,7 @@ all_words = words.words()
 from nltk.corpus import wordnet as wn
 
 
-# stopwords = stopwords.words('english')
+stopwords = stopwords.words('english')
 
 
 def convert_list_to_str(list_wrd_idx):
