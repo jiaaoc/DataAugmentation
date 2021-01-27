@@ -1,6 +1,6 @@
 {
     "dataset": "pubmed",
-    "datapath": "processed_data/pubmed",
+    "datapath": "processed_data/pubmed/",
     "pretrained_weight": "bert-base-uncased",
     "is_classification": true,
     "n_labeled_per_class": 100,

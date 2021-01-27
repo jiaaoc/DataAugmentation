@@ -1,6 +1,6 @@
 {
     "dataset": "20_ng",
-    "datapath": "processed_data/20_ng",
+    "datapath": "processed_data/20_ng/",
     "pretrained_weight": "bert-base-uncased",
     "is_classification": true,
     "n_labeled_per_class": 100,
