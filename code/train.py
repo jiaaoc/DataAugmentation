@@ -96,8 +96,8 @@ def main(config):
     model.load_state_dict(torch.load(config.best_model_file))
     test_loss, test_acc, test_f1 = validate(
         test_loader, model, criterion, epoch, mode='Test Stats ')
-    f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
-    test_accs.append(test_acc)
+    with open(config.test_score_file, 'a+') as f:
+        f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
 
 
 def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n_labels, config):

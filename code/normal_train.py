@@ -74,32 +74,20 @@ def main(config):
         print("epoch {}, val acc {}, val_loss {} val f1 {}".format(epoch, val_acc, val_loss, val_f1))
         with open(config.dev_score_file, 'a+') as f:
             f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}) + '\n')
-            #json.dump({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}, f)
+
 
         if val_acc >= best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), config.best_model_file)
 
-        print('Epoch: ', epoch)
 
     model.load_state_dict(torch.load(config.best_model_file))
     test_loss, test_acc, test_f1 = validate(
         test_loader, model, criterion, epoch, mode='Test Stats ')
+    with open(config.test_score_file, 'a+') as f:
+        f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
 
-    with open(config.dev_score_file, 'a+') as f:
-        f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc}) + '\n')
-        #json.dump({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}, f)
-
-    print('Best acc:')
     print(best_acc)
-
-
-    # logger.info("******Finished training, test acc {}******".format(test_accs[-1]))
-    print("Finished training!")
-    print('Best acc:')
-    print(best_acc)
-
-
 
 def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
     model.train()
@@ -107,7 +95,7 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
     for batch_idx, (inputs, targets) in enumerate(labeled_trainloader):
         inputs = inputs.reshape(-1, config.max_seq_length)
         targets = targets.reshape(-1, )
-        #print(inputs.shape, targets.shape)
+
         inputs, targets = inputs.to(device), targets.to(device)
         inputs = inputs.reshape(-1, inputs.shape[-1])
         targets = targets.reshape(-1)
@@ -115,7 +103,9 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
         outputs = model(inputs)
         loss = criterion(outputs, targets)
 
-        print('epoch {}, step {}, loss {}'.format(epoch, batch_idx, loss.item()))
+        print('epoch {}, step {}, loss {}'.format(
+            epoch, batch_idx, loss.item()))
+        print("Finished %d" % batch_idx, end='\r')
 
         #if  config.grad_accumulation_factor > 1:
         loss = loss /  config.grad_accumulation_factor
@@ -130,6 +120,4 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
 
 
 if __name__ == '__main__':
-    
-
     main(config)
