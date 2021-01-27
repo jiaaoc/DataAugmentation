@@ -14,8 +14,8 @@ def get_dict_test_scores(exp_dir):
         test_score_file = os.path.join(exp_dir, seed_dir_name, "test_scores_%d.json" % seed)
 
         with open(test_score_file, 'r') as f:
-            first_line = f.readline()
-            score_json = json.loads(first_line)
+            all_lines = f.readlines()
+            score_json = json.loads(all_lines[-1])
             test_acc = score_json["best_test_acc"]
             test_f1 = score_json["best_test_f1"]
 
