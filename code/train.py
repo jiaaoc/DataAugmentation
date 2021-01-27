@@ -246,9 +246,4 @@ def get_tsa_thresh(schedule, global_step, num_train_steps, start, end, device):
     return output.to(device)
 
 if __name__ == '__main__':
-
-
-
-    
-
     main(config)
