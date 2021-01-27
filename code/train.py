@@ -138,15 +138,12 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         outputs_x = logits[:batch_size]
         outputs_u = logits[batch_size:]
 
-        #print(outputs_x.shape, outputs_u.shape)
-
         sup_loss = ce_loss(outputs_x, targets_x)
         # sup_loss = torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1)  # [bs, ]
         
-        less_than_threshold = torch.exp(sup_loss) < tsa_thresh  # prob = exp(log_prob), prob > tsa_threshold
+        less_than_threshold = torch.exp(-sup_loss) < tsa_thresh  # prob = exp(log_prob), prob > tsa_threshold
 
-
-        Lx = - torch.sum(sup_loss * less_than_threshold, dim=-1) / torch.max(torch.sum(less_than_threshold, dim=-1),
+        Lx = torch.sum(sup_loss * less_than_threshold, dim=-1) / torch.max(torch.sum(less_than_threshold, dim=-1),
                                                                            torch.tensor(1.).to(config.device).long())
 
         probs_u = torch.log_softmax(outputs_u, dim=1)
@@ -160,20 +157,13 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         loss = Lx + config.lambda_u * Lu
         loss = loss / config.grad_accumulation_factor
         loss.backward()
-        # print(less_than_threshold, tsa_thresh)
-        # print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
-        #     epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))
 
         if (batch_idx+1) % config.grad_accumulation_factor == 0:
             optimizer.step()
             optimizer.zero_grad()
 
 
-
         if batch_idx % 100 == 0:
-            print(tsa_thresh)
-            print(torch.exp(sup_loss))
-            print(less_than_threshold)
             print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
                 epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))
 
