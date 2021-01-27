@@ -89,6 +89,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
     labeled_train_iter = iter(labeled_trainloader)
     unlabeled_train_iter = iter(unlabeled_trainloader)
     model.train()
+    ce_loss = nn.CrossEntropyLoss(reduction='none')
+
 
     for batch_idx in range(config.val_iteration):
         try:
@@ -112,8 +114,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         # inputs_x = torch.tensor(inputs_x[:,0]) # [bs * (1+num_aug), max_seq_len]
         # targets_x = torch.tensor(targets_x[:,0]) # [bs * (1+num_aug)]
 
-        targets_x = torch.zeros(batch_size, n_labels).scatter_(
-            1, targets_x.view(-1, 1), 1) #[]
+        # targets_x = torch.zeros(batch_size, n_labels).scatter_(
+        #     1, targets_x.view(-1, 1), 1) #[]
 
         inputs_x, targets_x = inputs_x.to(config.device), targets_x.to(config.device)
 
@@ -130,22 +132,20 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
 
         logits = model(all_inputs)
 
-        cur_step = epoch+batch_idx/config.val_iteration
-
-        tsa_thresh = get_tsa_thresh("exp_schedule", cur_step, config.epochs, 1/ n_labels, 1, config.device)
-
-        
+        cur_step = (epoch * config.val_iteration) + batch_idx
+        tsa_thresh = get_tsa_thresh("linear_schedule", cur_step, config.epochs * config.val_iteration, 1/ n_labels, 1, config.device)
 
         outputs_x = logits[:batch_size]
         outputs_u = logits[batch_size:]
 
         #print(outputs_x.shape, outputs_u.shape)
 
-
-        sup_loss = torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1)  # [bs, ]
+        sup_loss = ce_loss(outputs_x, targets_x)
+        # sup_loss = torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1)  # [bs, ]
         
         less_than_threshold = torch.exp(sup_loss) < tsa_thresh  # prob = exp(log_prob), prob > tsa_threshold
-        
+
+
         Lx = - torch.sum(sup_loss * less_than_threshold, dim=-1) / torch.max(torch.sum(less_than_threshold, dim=-1),
                                                                            torch.tensor(1.).to(config.device).long())
 
@@ -160,11 +160,16 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         loss = Lx + config.lambda_u * Lu
         loss = loss / config.grad_accumulation_factor
         loss.backward()
+        # print(less_than_threshold, tsa_thresh)
+        # print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
+        #     epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))
 
         if (batch_idx+1) % config.grad_accumulation_factor == 0:
             optimizer.step()
             optimizer.zero_grad()
-        
+
+
+
         if batch_idx % 100 == 0:
             print(tsa_thresh)
             print(torch.exp(sup_loss))

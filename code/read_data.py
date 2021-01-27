@@ -95,7 +95,6 @@ class Augmentor:
     def __call__(self, ori, ori_2=None, idx=0):
         augmented_data = []
         augmented_data_2 = None
-
         if self.transform_type == 'SynonymReplacement':
             augmented_data = synonym_replacement(ori, 0.1, self.transform_times)
             if ori_2 is not None:
@@ -424,7 +423,7 @@ def get_data(config):
     train_txt[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, config.max_seq_length, augmentor)
 
     train_unlabeled_dataset = loader_unlabeled(
-    train_txt[train_unlabeled_idxs], train_unlabeled_idxs, tokenizer, config.max_seq_length, Augmentor(config.datapath, config.transform_type, config.transform_times))
+    train_txt[train_unlabeled_idxs], train_unlabeled_idxs, tokenizer, config.max_seq_length, Augmentor(config, config.datapath, config.transform_type, config.transform_times))
 
     val_dataset = loader_labeled(train_txt[val_idxs], train_labels[val_idxs], val_idxs, tokenizer, config.max_seq_length)
 
@@ -647,9 +646,6 @@ class loader_unlabeled(Dataset):
         return tokens
 
     def __getitem__(self, idx):
-
-        #print(self.text[idx])
-
         ori = self.text[idx]
 
 
@@ -664,12 +660,8 @@ class loader_unlabeled(Dataset):
 
         else:
             ori = ori[0]
-
             augmented_data, _, _ = self.augmentor(ori, idx=self.ids[idx])
 
-            #print('ori', ori)
-
-            #print('aug', augmented_data)
             encode_result_u = self.get_tokenized(augmented_data)[0]
             encode_result_ori = self.get_tokenized(ori)
 

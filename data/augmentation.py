@@ -213,7 +213,7 @@ def random_insert(text, alpha, num_aug):
             cntr += 1
             if cntr >= 10:
                 # Note that if not enough synonyms or places to insert new words, it will return early
-                return list_agmnt
+                return [TreebankWordDetokenizer().detokenize(list_wrds)]
 
         hash_agmnt.add(hash_ins)
 
