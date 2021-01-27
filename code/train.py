@@ -166,8 +166,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         Lu = F.kl_div(probs_u, sharp_outputs_ori_prob, reduction='batchmean')  # [bs, ]
         
 
-        print("epoch {}, step {}, Lx {}, Lu {}".format(
-                epoch, batch_idx, Lx.item(), Lu.item()))
+        #print("epoch {}, step {}, Lx {}, Lu {}".format(
+         #       epoch, batch_idx, Lx.item(), Lu.item()))
 
         loss = Lx + config.lambda_u * Lu
         loss += loss / config.grad_accumulation_factor

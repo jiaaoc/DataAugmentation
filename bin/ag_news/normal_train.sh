@@ -4,6 +4,7 @@ export PYTHON_EXEC=python
 
 
 
+
 for i in 0 1 42
 do
     CUDA_VISIBLE_DEVICES=6 python -m code.normal_train -c ./config/ag_news/10_lbl_0_unlbl.json -k transform_type=None seed=$i
@@ -46,3 +47,11 @@ do
     CUDA_VISIBLE_DEVICES=6 python -m code.normal_train -c ./config/ag_news/100_lbl_0_unlbl.json -k transform_type=Cutoff seed=$i
 
 done
+
+
+
+
+
+
+
+

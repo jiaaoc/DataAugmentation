@@ -30,7 +30,7 @@ class Augmentor:
             if "hs" in path or "bias" in path or "20_ng" in path or "pubmed" in path:
                 train_df = read_csv(path + 'train.csv')
             else:
-                train_df = pd.read_csv(path + 'train.csv', header=None)
+                train_df = pd.read_csv(path + '/train.csv', header=None)
 
             # Here we only use the bodies and removed titles to do the classifications
             for txt in train_df[2]:
@@ -227,6 +227,46 @@ def get_ag_news_data(config):
 
         return train_text, train_labels, test_text, test_labels, train_idx_pool
 
+
+
+def get_yahoo_data(config):
+    
+    train_df = pd.read_csv(os.path.join(config.datapath, "train.csv"), header=None)
+    test_df = pd.read_csv(os.path.join(config.datapath, "test.csv"), header=None)
+
+
+    if config.n_labeled_per_class == -1:
+        train_labels = np.array([v-1 for v in train_df[0]])
+        train_text = np.array([[v] for v in train_df[2]])
+        del train_df
+
+        test_labels = np.array([u-1 for u in test_df[0]])
+        test_text = np.array([[v] for v in test_df[2]])
+        del test_df
+
+        return train_text, train_labels, test_text, test_labels, None
+
+    else:
+        train_labels = np.array([v-1 for v in train_df[0]])
+        train_text = np.array([[v] for v in train_df[2]])
+        del train_df
+
+        test_labels = np.array([u-1 for u in test_df[0]])
+        test_text = np.array([[v] for v in test_df[2]])
+        del test_df
+
+        n_labels = max(test_labels) + 1
+        np.random.seed(0)
+
+        train_idx_pool = []
+
+        for i in range(n_labels):
+            idxs = np.where(train_labels == i)[0]
+            np.random.shuffle(idxs)
+            train_idx_pool.extend(idxs[:1000 + 20000])
+
+        return train_text, train_labels, test_text, test_labels, train_idx_pool
+
 def get_data(config):
 
     """Read data, split the dataset, and build dataset for dataloaders.
@@ -253,7 +293,7 @@ def get_data(config):
     elif "20_ng" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_twenty_ng_data(config)
     elif "yahoo" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_yahoo_data()
+        train_txt, train_labels, test_txt, test_lbl, train_idx_pool = get_yahoo_data(config)
     elif "pubmed" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_pubmed_data()
     elif "mnli" in config.dataset.lower():
@@ -333,7 +373,7 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
 
             num_data = len(train_idx_pool)
 
-            num_val = min(int(0.2 * num_data), 1000)
+            num_val = min(int(0.2 * num_data), 2000)
 
             np.random.seed(seed)
             
@@ -368,7 +408,7 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
 
             num_data = len(labels)
 
-            num_val = min(int(0.2 * num_data), 5000)
+            num_val = min(int(0.2 * num_data), 2000)
 
             np.random.seed(seed)
             rand_perm = np.arange(num_data)
