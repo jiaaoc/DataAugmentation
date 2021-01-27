@@ -6,7 +6,7 @@
     "is_classification": true,
     "n_labeled_per_class": 100,
     "unlabeled_per_class": 5000,
-    "sharp_temperature": 0.5,
+    "sharp_temperature": 1,
     "lambda_u": 1,
     "batch_size": 4,
     "batch_size_u": 12,
