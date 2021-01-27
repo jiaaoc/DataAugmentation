@@ -9,7 +9,7 @@ def get_dict_test_scores(exp_dir):
 
     for seed_dir_name in os.listdir(exp_dir):
         seed = int(seed_dir_name.replace("seed_", ""))
-        test_score_file = os.path.join(exp_dir, seed_dir_name, "test_scres_%d.json" % seed)
+        test_score_file = os.path.join(exp_dir, seed_dir_name, "test_scores_%d.json" % seed)
 
         with open(test_score_file, 'r') as f:
             first_line = f.readline()
