@@ -197,22 +197,22 @@ def get_ag_news_data(config):
 
     if config.n_labeled_per_class == -1:
         train_labels = np.array([v-1 for v in train_df[0]])
-        train_text = np.array([v for v in train_df[2]])
+        train_text = np.array([[v] for v in train_df[2]])
         del train_df
 
         test_labels = np.array([u-1 for u in test_df[0]])
-        test_text = np.array([v for v in test_df[2]])
+        test_text = np.array([[v] for v in test_df[2]])
         del test_df
 
         return train_text, train_labels, test_text, test_labels, None
 
     else:
         train_labels = np.array([v-1 for v in train_df[0]])
-        train_text = np.array([v for v in train_df[2]])
+        train_text = np.array([[v] for v in train_df[2]])
         del train_df
 
         test_labels = np.array([u-1 for u in test_df[0]])
-        test_text = np.array([v for v in test_df[2]])
+        test_text = np.array([[v] for v in test_df[2]])
         del test_df
 
         n_labels = max(test_labels) + 1
@@ -451,7 +451,7 @@ class loader_labeled(Dataset):
                 tokenized_data = torch.cat(tokenized_data, dim=0) # [bs*2, max_seq_len]
 
             else:
-                ori = ori
+                ori = ori[0]
                 augmented_data, _, _ = self.augmentor(ori, idx=self.ids[idx])
                 encode_result_u = self.get_tokenized(augmented_data)
                 tokenized_data.append(torch.tensor(encode_result_u))
@@ -479,7 +479,7 @@ class loader_labeled(Dataset):
                 tokenized_data = torch.tensor(tokenized_data) # [bs, max_seq_len]
 
             else:
-                ori = ori
+                ori = ori[0]
                 tokenized_data = self.get_tokenized(ori)
                 labels.append(self.labels[idx])
                 labels = torch.tensor(labels)
@@ -517,6 +517,7 @@ class loader_unlabeled(Dataset):
 
         ori = self.text[idx]
 
+
         if len(ori) == 2:
             ori_a = ori[0]
             ori_b = ori[1]
@@ -527,7 +528,7 @@ class loader_unlabeled(Dataset):
             encode_result_ori = self.get_double_tokenized(ori_a, ori_b)
 
         else:
-            ori = ori
+            ori = ori[0]
 
             augmented_data, _, _ = self.augmentor(ori, idx=self.ids[idx])
 
