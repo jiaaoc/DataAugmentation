@@ -109,16 +109,27 @@ def all_mlm_pred(data_path, device):
     cnt = 0
     train_unlabeled_data_aug = {}
     for key, value in tqdm(train_unlabeled_data.items(), ncols=50, desc="Iteration:"):
-        new_value = augment_single_text_mlm_flip(model, tokenizer, stop_words, 0.3, 1, 2, value)
-        train_unlabeled_data_aug[key] = new_value
-        if cnt % 1000 == 0:
-            with open(data_path + 'train_unlabeled_data_mlm.pkl', 'wb') as f:
-                pickle.dump(train_unlabeled_data_aug, f)
+        if isinstance(value, list):
+            new_value = []
+            for text in value:
+                new_text = augment_single_text_mlm_flip(model, tokenizer, stop_words, 0.1, 1, 2, text)
+                new_value.append(new_text)
+
+            train_unlabeled_data_aug[key] = new_value
+
+        else:
+            if len(value) == 2:
+                new_value = augment_single_text_mlm_flip(model, tokenizer, stop_words, 0.1, 1, 2, value)
+                train_unlabeled_data_aug[key] = new_value
+
         cnt += 1
 
         if cnt % 5000 == 0:
-            with open(data_path + 'train_unlabeled_data_mlm.pkl', 'wb') as f:
+            with open(data_path + 'mlm.pkl', 'wb') as f:
                 pickle.dump(train_unlabeled_data_aug, f)
+
+    with open(data_path + 'mlm.pkl', 'wb') as f:
+        pickle.dump(train_unlabeled_data_aug, f)
 
 
 

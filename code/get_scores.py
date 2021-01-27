@@ -2,6 +2,8 @@ import argparse
 import os
 import json
 import numpy as np
+import scipy
+
 
 def get_dict_test_scores(exp_dir):
 
@@ -22,15 +24,18 @@ def get_dict_test_scores(exp_dir):
             dict_seed_to_test_f1[seed] = test_f1
 
     average = np.mean(np.asarray(list(dict_seed_to_test_acc.values())))
-    std_dev = np.std(np.asarray(list(dict_seed_to_test_acc.values())))
+    std_error = scipy.stats.sem((np.asarray(list(dict_seed_to_test_acc.values()))))
+    n = len(list(dict_seed_to_test_f1.values()))
+    ci = std_error * scipy.stats.t.ppf((1 + 0.95) / 2., n - 1)
 
-    print("Average: %.3f, Std Dev: %.3f " % (average, std_dev))
+    print("Average: %.3f, Std Error: %.3f, CI: %.3f " % (average, std_error, ci))
     print(dict_seed_to_test_acc)
 
     average = np.mean(np.asarray(list(dict_seed_to_test_f1.values())))
-    std_dev = np.std(np.asarray(list(dict_seed_to_test_f1.values())))
+    std_dev = scipy.stats.sem(np.asarray(list(dict_seed_to_test_f1.values())))
+    ci = std_error * scipy.stats.t.ppf((1 + 0.95) / 2., n - 1)
 
-    print("Average: %.3f, Std Dev: %.3f " % (average, std_dev))
+    print("Average: %.3f, Std Dev: %.3f, CI: %.3f " % (average, std_dev, ci))
     print(dict_seed_to_test_f1)
 
 
@@ -40,3 +45,23 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     get_dict_test_scores(args.exp_dir)
+
+
+
+def mean_confidence_interval(data, confidence=0.95):
+    a = 1.0 * np.array(data)
+    n = len(a)
+    m, se = np.mean(a), scipy.stats.sem(a)
+    h = se * scipy.stats.t.ppf((1 + confidence) / 2., n-1)
+    return m, himport json
+for u in os.listdir(path):
+    print(u)
+    score = []
+    sub_path = path + u + ‘/’
+    for v in os.listdir(sub_path):        sub_sub_path = sub_path + v + ‘/’
+        for k in os.listdir(sub_sub_path):
+            if ‘test’ in k:
+                with open(sub_sub_path + k, ‘r’) as f:
+                    data = json.load(f)                print(data)
+                score.append(data[‘best_test_acc’])
+    print(mean_confidence_interval(score))

@@ -91,7 +91,6 @@ class Augmentor:
                     de = pickle.load(f)
                     self.transform.append(de)
 
-
     def __call__(self, ori, ori_2=None, idx=0):
         augmented_data = []
         augmented_data_2 = None
@@ -117,8 +116,16 @@ class Augmentor:
                 augmented_data_2 = random_flip(ori_2, 0.1, self.transform_times)
         #TODO: Implement for ori_2
         elif self.transform_type == 'WordReplacementLM':
-            for i in range(0, self.transform_times):
-                augmented_data.append(self.transform[i][idx])
+            augmented_data_2 = []
+            if ori_2 is None:
+                for i in range(0, self.transform_times):
+                    augmented_data.append(self.transform[i][idx])
+            else:
+                for i in range(0, self.transform_times):
+                    augmented_data.append(self.transform[i][idx][0][0])
+                for i in range(0, self.transform_times):
+                    augmented_data_2.append(self.transform[i][idx][1][0])
+
         elif self.transform_type == 'BackTranslation':
             for i in range(0, self.transform_times):
                 augmented_data.append(self.transform[i][idx])
