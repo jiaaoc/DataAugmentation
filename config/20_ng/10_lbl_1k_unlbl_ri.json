@@ -1,5 +1,4 @@
 {
-    "model": "BertTextClassification",
     "dataset": "20_ng",
     "datapath": "processed_data/20_ng",
     "pretrained_weight": "bert-base-uncased",

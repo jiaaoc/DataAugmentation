@@ -206,7 +206,7 @@ def get_twenty_ng_data(config):
             for idx, line in enumerate(f.readlines()):
                 comma_split = line.strip('\n').split(',')
                 if len(comma_split) > 2 and comma_split[0].isdigit() and comma_split[1].isdigit():
-                    list_lbl.append(int(comma_split[0]))
+                    list_lbl.append(int(comma_split[0]) - 1)
                     list_txt.append([','.join(comma_split[2:])])
 
         return list_txt, list_lbl
@@ -215,6 +215,36 @@ def get_twenty_ng_data(config):
     test_txt, test_lbl = read_csv(os.path.join(config.datapath, "test.csv"))
 
     return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
+
+
+def get_qnli_data(config):
+    dict_lbl_2_idx = {"not_entailment": 0, "entailment": 1}
+
+    def read_tsv(filepath):
+        list_lbl = []
+        list_txt = []
+
+        with open(filepath, 'r') as f:
+            # Read header path
+            f.readline()
+
+            for idx, line in enumerate(f.readlines()):
+                tab_split = line.strip('\n').split('\t')
+
+                question = tab_split[1]
+                sentence = tab_split[2]
+                lbl = int(dict_lbl_2_idx[tab_split[3]])
+
+                list_txt.append([question, sentence])
+                list_lbl.append(lbl)
+
+        return list_txt, list_lbl
+
+    train_txt, train_lbl = read_tsv(os.path.join(config.datapath, "train.tsv"))
+    test_txt, test_lbl = read_tsv(os.path.join(config.datapath, "dev.tsv"))
+
+    return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
+
 
 
 def get_data(config):
@@ -256,7 +286,7 @@ def get_data(config):
     elif "stsb" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_stsb_data()
     elif "qnli" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_qnli_data()
+        train_txt, train_labels, test_txt, test_lbl = get_qnli_data(config)
     elif "rte" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_rte_data()
     elif "cola" in config.dataset.lower():
@@ -391,11 +421,11 @@ class loader_labeled(Dataset):
 
                 augmented_data_a, augmented_data_b, _ = self.augmentor(ori_a, ori_b, self.ids[idx])
 
-                encode_result_u, length_u = self.get_double_tokenized(augmented_data_a, augmented_data_b)
+                encode_result_u = self.get_double_tokenized(augmented_data_a, augmented_data_b)
                 tokenized_data.append(torch.tensor(encode_result_u))
                 labels.append(self.labels[idx])
 
-                encode_result_ori = self.get_tokenized(ori_a, ori_b)
+                encode_result_ori = self.get_double_tokenized(ori_a, ori_b)
                 tokenized_data.append(torch.tensor(encode_result_ori)[None,:])
                 labels.append(self.labels[idx])
 
@@ -424,7 +454,7 @@ class loader_labeled(Dataset):
             if len(ori) == 2:
                 ori_a = ori[0]; ori_b = ori[1]
 
-                tokenized_data = self.get_tokenized(ori_a, ori_b)
+                tokenized_data = self.get_double_tokenized(ori_a, ori_b)
                 labels.append(self.labels[idx])
 
                 labels = torch.tensor(labels)
@@ -473,7 +503,7 @@ class loader_unlabeled(Dataset):
             augmented_data_a, augmented_data_b, _ = self.augmentor(ori_a, ori_b, self.ids[idx])
             encode_result_u = self.get_double_tokenized(augmented_data_a, augmented_data_b)[0]
 
-            encode_result_ori = self.get_tokenized(ori_a, ori_b)
+            encode_result_ori = self.get_double_tokenized(ori_a, ori_b)
 
         else:
             ori = ori[0]

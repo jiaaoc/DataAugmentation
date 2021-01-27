@@ -1,9 +1,9 @@
 {
-    "dataset": "20_ng",
-    "datapath": "processed_data/20_ng",
+    "dataset": "qnli",
+    "datapath": "processed_data/qnli",
     "pretrained_weight": "bert-base-uncased",
     "is_classification": true,
-    "n_labeled_per_class": 10,
+    "n_labeled_per_class": -1,
     "unlabeled_per_class": 0,
     "sharp_temperature": 1,
     "lambda_u": 1,
