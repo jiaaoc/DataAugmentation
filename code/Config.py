@@ -37,7 +37,7 @@ class Config(object):
         # Hyperparameters
         self.lr = 1e-5
 
-        self.exp_dir = None
+        self.exp_dir = "None"
 
         # Augmentation hyperparameters
         self.transform_type = None
