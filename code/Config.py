@@ -75,8 +75,8 @@ class Config(object):
         self.save_config(os.path.join(self.exp_dir, os.path.join("config.json")))
 
         if self.exp_dir is not None:
-            self.dev_score_file = os.path.join(self.exp_dir, "dev_scores.json")
-            self.test_score_file = os.path.join(self.exp_dir, "test_scores.json")
+            self.dev_score_file = os.path.join(self.exp_dir, "dev_scores_"+str(self.seed)+".json")
+            self.test_score_file = os.path.join(self.exp_dir, "test_scores_"+str(self.seed)+".json")
             self.best_model_file = os.path.join(self.exp_dir, "best_model.pt")
 
     def to_json(self):

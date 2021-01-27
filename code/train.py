@@ -30,6 +30,20 @@ from code.util import set_seeds
 
 
 
+parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
+parser.add_argument('-c', '--config_file', required=True)
+parser.add_argument('-k', '--kwargs', nargs='*', action=ParseKwargs)
+
+args = parser.parse_args()
+
+config = Config(args.config_file, args.kwargs)
+
+os.environ['CUDA_VISIBLE_DEVICES'] = str(config.gpu)
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+n_gpu = torch.cuda.device_count()
+
+best_acc = 0
 
 def main(config):
     set_seeds(config.seed)
@@ -74,10 +88,10 @@ def main(config):
 
         if val_acc >= best_acc:
             best_acc = val_acc
-            torch.save(model.state_dict(), best_model_file)
+            torch.save(model.state_dict(), config.best_model_file)
 
 
-    model.load_state_dict(torch.load(file + ".pt"))
+    model.load_state_dict(torch.load(config.best_model_file))
     test_loss, test_acc, test_f1 = validate(
         test_loader, model, criterion, epoch, mode='Test Stats ')
     f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
@@ -168,16 +182,22 @@ def validate(config, valloader, model, criterion, epoch, mode):
         pred_lbl = []
         true_lbl = []
 
-        for batch_idx, (inputs, targets, length) in enumerate(valloader):
+        for batch_idx, (inputs, targets) in enumerate(valloader):
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs)
+
+            targets = targets.reshape(-1)
             loss = criterion(outputs, targets)
 
-            pred_lbl.extend(np.array(predicted.cpu()).tolist())
-            true_lbl.extend(np.array(targets.cpu()).tolist())
+            #pred_lbl.extend(np.array(predicted.cpu()).tolist())
+            #true_lbl.extend(np.array(targets.cpu()).tolist())
 
             if config.is_classification:
                 _, predicted = torch.max(outputs.data, 1)
+
+
+                pred_lbl.extend(np.array(predicted.cpu()).tolist())
+                true_lbl.extend(np.array(targets.cpu()).tolist())
 
                 correct += (np.array(predicted.cpu()) ==
                             np.array(targets.cpu())).sum()
@@ -217,17 +237,9 @@ def get_tsa_thresh(schedule, global_step, num_train_steps, start, end, device):
     return output.to(device)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
-    parser.add_argument('-c', '--config_file', required=True)
-    parser.add_argument('-k', '--kwargs', nargs='*', action=ParseKwargs)
 
-    args = parser.parse_args()
 
-    config = Config(args.config_file, args.kwargs)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(config.gpu)
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    n_gpu = torch.cuda.device_count()
+    
 
     main(config)

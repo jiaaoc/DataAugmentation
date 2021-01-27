@@ -25,6 +25,20 @@ from code.util import set_seeds
 
 
 
+parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
+parser.add_argument('-c', '--config_file', required=True)
+parser.add_argument('-k', '--kwargs', nargs='*', action=ParseKwargs)
+
+args = parser.parse_args()
+
+config = Config(args.config_file, args.kwargs)
+
+os.environ['CUDA_VISIBLE_DEVICES'] = str(config.gpu)
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+best_acc = 0
+
 def main(config):
     set_seeds(config.seed)
 
@@ -51,22 +65,24 @@ def main(config):
     for epoch in range(config.epochs):
         train(labeled_trainloader, model, optimizer, criterion, epoch, config)
 
-        val_loss, val_acc, val_f1 = validate(
+        val_loss, val_acc, val_f1 = validate(config, 
             val_loader, model, criterion, epoch, mode='Valid Stats')
 
         print("epoch {}, val acc {}, val_loss {} val f1 {}".format(epoch, val_acc, val_loss, val_f1))
-        f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}) + '\n')
+        with open(config.dev_score_file, 'a+') as f:
+            f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}) + '\n')
 
         if val_acc >= best_acc:
             best_acc = val_acc
-            torch.save(model.state_dict(), file + ".pt")
+            torch.save(model.state_dict(), config.best_model_file)
 
         print('Epoch: ', epoch)
 
-    model.load_state_dict(torch.load(file + ".pt"))
+    model.load_state_dict(torch.load(config.best_model_file))
     test_loss, test_acc, test_f1 = validate(
         test_loader, model, criterion, epoch, mode='Test Stats ')
 
+    #with open(config.dev_score_file, 'a+') as f:
     f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc}) + '\n')
 
     print('Best acc:')
@@ -86,7 +102,7 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
     for batch_idx, (inputs, targets) in enumerate(labeled_trainloader):
         inputs = inputs.reshape(-1, config.max_seq_length)
         targets = targets.reshape(-1, )
-        print(inputs.shape, targets.shape)
+        #print(inputs.shape, targets.shape)
         inputs, targets = inputs.to(device), targets.to(device)
         inputs = inputs.reshape(-1, inputs.shape[-1])
         targets = targets.reshape(-1)
@@ -106,16 +122,6 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
-    parser.add_argument('-c', '--config_file', required=True)
-    parser.add_argument('-k', '--kwargs', nargs='*', action=ParseKwargs)
-
-    args = parser.parse_args()
-
-    config = Config(args.config_file, args.kwargs)
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(config.gpu)
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
 
     main(config)

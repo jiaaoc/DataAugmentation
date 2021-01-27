@@ -261,7 +261,7 @@ def get_ag_news_data(config):
         train_idx_pool = []
 
         for i in range(n_labels):
-            idxs = np.where(labels == i)[0]
+            idxs = np.where(train_labels == i)[0]
             np.random.shuffle(idxs)
             train_idx_pool.extend(idxs[:1000 + 20000])
 
@@ -301,7 +301,7 @@ def get_data(config):
     # Labels must be 0 indexed
     # All datasets must return lists of lists
     if "ag_news" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl, train_idx_pool = get_ag_news_data()
+        train_txt, train_labels, test_txt, test_lbl, train_idx_pool = get_ag_news_data(config)
     elif "20_ng" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_twenty_ng_data(config)
     elif "yahoo" in config.dataset.lower():
@@ -390,7 +390,7 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
             np.random.seed(seed)
             
             
-            rand_perm = train_idx_pool.copy()
+            rand_perm = np.array(train_idx_pool.copy())
             np.random.shuffle(rand_perm)
 
             val_idxs = rand_perm[-num_val:]
