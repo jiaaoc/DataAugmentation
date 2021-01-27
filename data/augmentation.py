@@ -101,7 +101,7 @@ def synonym_replacement(text, alpha, num_aug):
                 return synonym_replacement(text, alpha-0.1, num_aug)
             else:
                 # Return original text
-                return [TreebankWordDetokenizer().detokenize(list_wrds), TreebankWordDetokenizer().detokenize(list_wrds)]
+                return [TreebankWordDetokenizer().detokenize(list_wrds)]
 
         # Keep sampling indices of words to flip until unique one comes up (at most 10 times)
         cntr = 0
@@ -114,8 +114,7 @@ def synonym_replacement(text, alpha, num_aug):
                 if alpha > 0:
                     return synonym_replacement(text, alpha - 0.1, num_aug)
                 else:
-                    return [TreebankWordDetokenizer().detokenize(list_wrds),
-                            TreebankWordDetokenizer().detokenize(list_wrds)]
+                    return [TreebankWordDetokenizer().detokenize(list_wrds)]
 
         set_flip_wrd_idx.add(convert_list_to_str(flip_wrd_idx))
 
@@ -167,8 +166,7 @@ def random_flip(text, alpha, num_aug):
                 if alpha > 0:
                     return synonym_replacement(text, alpha - 0.1, num_aug)
                 else:
-                    return [TreebankWordDetokenizer().detokenize(list_wrds),
-                            TreebankWordDetokenizer().detokenize(list_wrds)]
+                    return [TreebankWordDetokenizer().detokenize(list_wrds)]
 
         set_flip_wrd_idx.add(convert_list_to_str(flip_wrd_idx))
 

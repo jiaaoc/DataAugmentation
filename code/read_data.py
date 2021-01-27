@@ -17,7 +17,7 @@ class Augmentor:
     """Add different Augmentation here: Synonym Replacement, Word Replacement from Vocab, Random Insertion/deletion/swapping, Word Replacement from LM, BackTranslation
     """
 
-    def __init__(self, path=None, transform_type='BackTranslation', transform_times = 1):
+    def __init__(self, config, path=None, transform_type='BackTranslation', transform_times = 1):
 
         self.transform_type = transform_type
         self.transform_times = transform_times
@@ -27,14 +27,37 @@ class Augmentor:
         if transform_type == 'SynonymReplacement':
             pass
         elif transform_type == 'WordReplacementVocab':
-            if "hs" in path or "bias" in path or "20_ng" in path or "pubmed" in path:
-                train_df = read_csv(path + 'train.csv')
+            if "ag_news" in config.dataset.lower():
+                train_txt, _, _, _, _ = get_ag_news_data(config)
+            elif "20_ng" in config.dataset.lower():
+                train_txt, _, _, _ = get_twenty_ng_data(config)
+            elif "yahoo" in config.dataset.lower():
+                train_txt, _, _, _, _ = get_yahoo_data(config)
+            elif "pubmed" in config.dataset.lower():
+                train_txt, _, _, _ = get_pubmed_data(config)
+            elif "mnli" in config.dataset.lower():
+                train_txt, _, _, _ = get_mnli_data(config)
+            elif "qqp" in config.dataset.lower():
+                train_txt, _, _, _ = get_qqp_data(config)
+            elif "sst2" in config.dataset.lower():
+                train_txt, _, _, _ = get_sst2_data()
+            elif "mrpc" in config.dataset.lower():
+                train_txt, _, _, _ = get_mprc_data()
+            elif "stsb" in config.dataset.lower():
+                train_txt, _, _, _ = get_stsb_data()
+            elif "qnli" in config.dataset.lower():
+                train_txt, _, _, _ = get_qnli_data(config)
+            elif "rte" in config.dataset.lower():
+                train_txt, _, _, _ = get_rte_data(config)
+            elif "cola" in config.dataset.lower():
+                train_txt, _, _, _ = get_cola_data()
             else:
-                train_df = pd.read_csv(path + '/train.csv', header=None)
+                raise ValueError("Invalid Dataset Name %s" % config.dataset)
 
             # Here we only use the bodies and removed titles to do the classifications
-            for txt in train_df[2]:
-                self.set_wrds.update(txt.split(' '))
+            for list_txt in train_txt:
+                for txt in list_txt:
+                    self.set_wrds.update(txt.split(' '))
 
             self.set_wrds = list(self.set_wrds)
 
@@ -67,10 +90,7 @@ class Augmentor:
                 with open(path + 'de_1.pkl', 'rb') as f:
                     de = pickle.load(f)
                     self.transform.append(de)
-            # # Pre-processed Russian data
-            # with open(path + 'ru_1.pkl', 'rb') as f:
-            #     ru = pickle.load(f)
-            #     self.transform.append(ru)
+
 
     def __call__(self, ori, ori_2=None, idx=0):
         augmented_data = []
@@ -398,7 +418,7 @@ def get_data(config):
 
     augmentor = None
     if config.transform_type is not None:
-        augmentor = Augmentor(config.datapath, config.transform_type, config.transform_times)
+        augmentor = Augmentor(config, config.datapath, config.transform_type, config.transform_times)
 
     train_labeled_dataset = loader_labeled(
     train_txt[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, config.max_seq_length, augmentor)
