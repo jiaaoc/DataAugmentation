@@ -115,15 +115,18 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
         outputs = model(inputs)
         loss = criterion(outputs, targets)
 
-        print('epoch {}, step {}, loss {}'.format(
-            epoch, batch_idx, loss.item()))
+        print('epoch {}, step {}, loss {}'.format(epoch, batch_idx, loss.item()))
 
-        loss = loss / config.grad_accumulation_factor
+        #if  config.grad_accumulation_factor > 1:
+        loss = loss /  config.grad_accumulation_factor
+
         loss.backward()
-
-        if batch_idx % config.grad_accumulation_factor:
+        
+        if (batch_idx+1) % config.grad_accumulation_factor == 0:
             optimizer.step()
             optimizer.zero_grad()
+
+        
 
 
 if __name__ == '__main__':

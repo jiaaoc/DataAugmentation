@@ -162,12 +162,13 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         Lu = F.kl_div(probs_u, sharp_outputs_ori_prob, reduction='batchmean')  # [bs, ]
 
         loss = Lx + config.lambda_u * Lu
-        loss = loss / config.grad_accumulation_factor
+        loss += loss / config.grad_accumulation_factor
         loss.backward()
 
-        if batch_idx % config.grad_accumulation_factor:
+        if (batch_idx+1) % config.grad_accumulation_factor == 0:
             optimizer.step()
             optimizer.zero_grad()
+        
         if batch_idx % 400 == 0:
             print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
                 epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))

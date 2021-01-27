@@ -291,7 +291,6 @@ def get_ag_news_data(config):
             np.random.shuffle(idxs)
             train_idx_pool.extend(idxs[:1000 + 20000])
 
-
         return train_text, train_labels, test_text, test_labels, train_idx_pool
 
 def get_data(config):
@@ -435,7 +434,7 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
 
             num_data = len(labels)
 
-            num_val = min(int(0.2 * num_data), 1000)
+            num_val = min(int(0.2 * num_data), 5000)
 
             np.random.seed(seed)
             rand_perm = np.arange(num_data)
@@ -518,7 +517,7 @@ class loader_labeled(Dataset):
                 tokenized_data = torch.cat(tokenized_data, dim=0) # [bs*2, max_seq_len]
 
             else:
-                ori = ori[0]
+                ori = ori
                 augmented_data, _, _ = self.augmentor(ori, idx=self.ids[idx])
                 encode_result_u = self.get_tokenized(augmented_data)
                 tokenized_data.append(torch.tensor(encode_result_u))
@@ -546,7 +545,7 @@ class loader_labeled(Dataset):
                 tokenized_data = torch.tensor(tokenized_data) # [bs, max_seq_len]
 
             else:
-                ori = ori[0]
+                ori = ori
                 tokenized_data = self.get_tokenized(ori)
                 labels.append(self.labels[idx])
                 labels = torch.tensor(labels)
