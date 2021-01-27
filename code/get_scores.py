@@ -45,23 +45,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     get_dict_test_scores(args.exp_dir)
-
-
-
-def mean_confidence_interval(data, confidence=0.95):
-    a = 1.0 * np.array(data)
-    n = len(a)
-    m, se = np.mean(a), scipy.stats.sem(a)
-    h = se * scipy.stats.t.ppf((1 + confidence) / 2., n-1)
-    return m, himport json
-for u in os.listdir(path):
-    print(u)
-    score = []
-    sub_path = path + u + ‘/’
-    for v in os.listdir(sub_path):        sub_sub_path = sub_path + v + ‘/’
-        for k in os.listdir(sub_sub_path):
-            if ‘test’ in k:
-                with open(sub_sub_path + k, ‘r’) as f:
-                    data = json.load(f)                print(data)
-                score.append(data[‘best_test_acc’])
-    print(mean_confidence_interval(score))
