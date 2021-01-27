@@ -358,7 +358,7 @@ def get_data(config):
 
     """
     # Load the tokenizer for bert
-    tokenizer = AutoTokenizer.from_pretrained(config.pretrained_weight)
+    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
     
     train_idx_pool = None
     # Labels must be 0 indexed

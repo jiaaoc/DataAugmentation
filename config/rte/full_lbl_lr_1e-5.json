@@ -1,7 +1,7 @@
 {
     "dataset": "rte",
     "datapath": "processed_data/RTE",
-    "pretrained_weight": "bert-base-uncased",
+    "pretrained_weight": "pretrained_models/bert-base-uncased-MNLI",
     "is_classification": true,
     "n_labeled_per_class": -1,
     "unlabeled_per_class": 0,
