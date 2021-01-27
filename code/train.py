@@ -147,11 +147,14 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
 
         cur_step = epoch+batch_idx/config.val_iteration
 
-        tsa_thresh = get_tsa_thresh("linear_schedule", cur_step, config.epochs, 0, 1/ n_labels, device)
+        tsa_thresh = get_tsa_thresh("exp_schedule", cur_step, config.epochs, 1/ n_labels, 1, device)
 
         
+
         outputs_x = logits[:batch_size]
         outputs_u = logits[batch_size:]
+
+        #print(outputs_x.shape, outputs_u.shape)
 
 
         sup_loss = torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1)  # [bs, ]
@@ -170,14 +173,17 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
          #       epoch, batch_idx, Lx.item(), Lu.item()))
 
         loss = Lx + config.lambda_u * Lu
-        loss += loss / config.grad_accumulation_factor
+        loss = loss / config.grad_accumulation_factor
         loss.backward()
 
         if (batch_idx+1) % config.grad_accumulation_factor == 0:
             optimizer.step()
             optimizer.zero_grad()
         
-        if batch_idx % 400 == 0:
+        if batch_idx % 100 == 0:
+            print(tsa_thresh)
+            print(torch.exp(sup_loss))
+            print(less_than_threshold)
             print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
                 epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))
 
