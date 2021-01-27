@@ -39,8 +39,8 @@ class Augmentor:
                 train_txt, _, _, _ = get_mnli_data(config)
             elif "qqp" in config.dataset.lower():
                 train_txt, _, _, _ = get_qqp_data(config)
-            elif "sst2" in config.dataset.lower():
-                train_txt, _, _, _ = get_sst2_data()
+            elif "sst-2" in config.dataset.lower():
+                train_txt, _, _, _ = get_sst2_data(config)
             elif "mrpc" in config.dataset.lower():
                 train_txt, _, _, _ = get_mprc_data()
             elif "stsb" in config.dataset.lower():
@@ -360,6 +360,22 @@ def get_pubmed_data(config):
     return np.asarray(train_txt)[:130000], np.asarray(train_lbl)[:130000], np.asarray(test_txt), np.asarray(test_lbl)
 
 
+def get_sst2_data(config):
+    train_df = pd.read_csv(os.path.join(config.datapath, "train.tsv"), sep = '\t')
+    test_df = pd.read_csv(os.path.join(config.datapath, "dev.tsv"), sep = '\t')
+
+    train_labels = np.array([v for v in train_df['label']])
+    train_text = np.array([[v] for v in train_df['sentence']])
+    
+    del train_df
+    
+    test_labels = np.array([v for v in test_df['label']])
+    test_text = np.array([[v] for v in test_df['sentence']])
+
+    del test_df
+
+    return train_txt, train_labels, test_text, test_labels
+
 
 def get_data(config):
 
@@ -394,8 +410,8 @@ def get_data(config):
         train_txt, train_labels, test_txt, test_lbl = get_mnli_data(config)
     elif "qqp" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_qqp_data(config)
-    elif "sst2" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_sst2_data()
+    elif "sst-2" in config.dataset.lower():
+        train_txt, train_labels, test_txt, test_lbl = get_sst2_data(config)
     elif "mrpc" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_mprc_data()
     elif "stsb" in config.dataset.lower():
