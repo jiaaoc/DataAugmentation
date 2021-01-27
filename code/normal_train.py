@@ -103,8 +103,8 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
         outputs = model(inputs)
         loss = criterion(outputs, targets)
 
-        # print('epoch {}, step {}, loss {}'.format(
-        #     epoch, batch_idx, loss.item()))
+        print('epoch {}, step {}, loss {}'.format(
+            epoch, batch_idx, loss.item()))
         print("Finished %d" % batch_idx, end='\r')
 
         loss = loss / config.grad_accumulation_factor
