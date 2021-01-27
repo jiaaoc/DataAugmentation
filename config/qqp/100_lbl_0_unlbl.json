@@ -1,9 +1,9 @@
 {
-    "dataset": "qnli",
-    "datapath": "processed_data/qnli",
+    "dataset": "qqp",
+    "datapath": "processed_data/QQP",
     "pretrained_weight": "bert-base-uncased",
     "is_classification": true,
-    "n_labeled_per_class": 10,
+    "n_labeled_per_class": 100,
     "unlabeled_per_class": 0,
     "sharp_temperature": 1,
     "lambda_u": 1,
