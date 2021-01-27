@@ -19,8 +19,8 @@ def get_dict_test_scores(exp_dir):
             dict_seed_to_test_acc[seed] = test_acc
 
 
-    average = np.mean(dict_seed_to_test_acc.values())
-    std_dev = np.std(dict_seed_to_test_acc.values())
+    average = np.mean(np.asarray(list(dict_seed_to_test_acc.values())))
+    std_dev = np.std(np.asarray(dict_seed_to_test_acc.values()))
 
     print("Average: %.3f, Std Dev: %.3f " % (average, std_dev))
     print(dict_seed_to_test_acc)
