@@ -2,25 +2,27 @@ import json
 import os
 import ast
 
-from src.utils.util import make_exp_dir, save_gcp
-
 class Config(object):
     def __init__(self, filename=None, kwargs=None):
 
         self.gpu = '0'
+
+        self.seed = 0
 
         # Dataset and model setup
         self.model = "BertTextClassification"
         self.dataset = "glue/sst2"
         self.datapath = "processed_data/glue/sst2"
         self.pretrained_weight = "bert-base-uncased"
+        self.is_classification = True
 
         # SSL setup
-        self.n_labeled = 10
-        self.un_labeled = 0
+        self.n_labeled_per_class = 10
+        self.unlabeled_per_class = 0
+
+        self.max_seq_length = 256
 
         # UDA hyperparameters
-        self.confidence_threshold = 0
         self.sharp_temperature = 1
         self.lambda_u = 1
 
@@ -33,12 +35,11 @@ class Config(object):
         self.grad_accumulation_factor = 1
 
         # Hyperparameters
-        self.lr = 1e-3
+        self.lr = 1e-5
 
         # Augmentation hyperparameters
-        self.train_aug = False
-        self.transform_type = "BackTranslation"
-        self.transform_times = 2
+        self.transform_type = None
+        self.transform_times = 1
 
         if filename:
             self.__dict__.update(json.load(open(filename)))
@@ -61,12 +62,12 @@ class Config(object):
         Updates the config default values based on parameters passed in from config file
         '''
 
-        base_dir = os.path.join("exp_out", self.dataset, self.model, "%d_lbl_%d_unlbl" % (self.n_labeled, self.un_labeled))
+        base_dir = os.path.join("exp_out", self.dataset, "%d_lbl_%d_unlbl" % (self.n_labeled_per_class, self.unlabeled_per_class))
 
         if not os.path.exists(base_dir):
             os.makedirs(base_dir)
 
-        self.exp_dir = os.path.join(base_dir, "%s" % self.train_aug)
+        self.exp_dir = os.path.join(base_dir, "%s" % self.transform_type)
 
         if not os.path.exists(self.exp_dir):
             os.makedirs(self.exp_dir)
@@ -92,6 +93,3 @@ class Config(object):
         with open(filename, 'w+') as fout:
             fout.write(self.to_json())
             fout.write('\n')
-
-        if self.is_tpu and should_save_gcp:
-            save_gcp(filename)

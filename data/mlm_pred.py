@@ -4,11 +4,11 @@ import numpy as np
 import random
 import argparse
 import pickle
-import tqdm
+from tqdm import tqdm
 from nltk.corpus import stopwords
 
 from transformers import AutoModelWithLMHead, AutoTokenizer
-from code.data.augmentation import convert_list_to_str
+from data.augmentation import convert_list_to_str
 
 
 
@@ -109,28 +109,29 @@ def all_mlm_pred(data_path, device):
     cnt = 0
     train_unlabeled_data_aug = {}
     for key, value in tqdm(train_unlabeled_data.items(), ncols=50, desc="Iteration:"):
-        new_value = augment_single_text_mlm_flip(model, tokenizer, stop_words, 0.3, 1, 2)
+        new_value = augment_single_text_mlm_flip(model, tokenizer, stop_words, 0.3, 1, 2, value)
         train_unlabeled_data_aug[key] = new_value
         if cnt % 1000 == 0:
-            with open(data_path + 'train_unlabeled_data_bt.pkl', 'wb') as f:
+            with open(data_path + 'train_unlabeled_data_mlm.pkl', 'wb') as f:
                 pickle.dump(train_unlabeled_data_aug, f)
         cnt += 1
 
-    with open(data_path + 'train_unlabeled_data_bt.pkl', 'wb') as f:
-        pickle.dump(train_unlabeled_data_aug, f)
+        if cnt % 5000 == 0:
+            with open(data_path + 'train_unlabeled_data_mlm.pkl', 'wb') as f:
+                pickle.dump(train_unlabeled_data_aug, f)
 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-g', "--device", default=0, type=int)
-    parser.add_argument('-d' '--data_path', type=str, default='./processed_data/',
+    parser.add_argument('-d', '--datapath', type=str, default='./processed_data/',
                         help='path to data folders')
     args = parser.parse_args()
 
     device = torch.device("cuda:%d" % args.device if torch.cuda.is_available() else "cpu")
 
-
+    all_mlm_pred(args.datapath, device)
 
 
 

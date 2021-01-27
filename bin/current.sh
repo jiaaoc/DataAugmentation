@@ -1,0 +1,10 @@
+bash bin/train.sh processed_data/20_ng/ 2 4 2 SynonymReplacement 1000
+bash bin/train.sh processed_data/20_ng/ 2 4 2 WordReplacementVocab 1000
+bash bin/train.sh processed_data/20_ng/ 2 4 2 RandomInsertion 1000
+bash bin/train.sh processed_data/20_ng/ 2 4 2 RandomDeletion 1000
+bash bin/train.sh processed_data/20_ng/ 2 4 2 RandomSwapping 1000
+bash bin/train.sh processed_data/20_ng/ 2 4 2 Cutoff 1000
+bash bin/train.sh processed_data/pubmed/ 2 4 2 SynonymReplacement 1000
+bash bin/train.sh processed_data/pubmed/ 2 4 2 RandomDeletion 1000
+bash bin/train.sh processed_data/pubmed/ 2 4 2 RandomSwapping 1000
+bash bin/train.sh processed_data/pubmed/ 2 4 2 Cutoff 1000

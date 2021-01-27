@@ -16,7 +16,8 @@ all_words = words.words()
 
 from nltk.corpus import wordnet as wn
 
-stopwords = stopwords.words('english')
+
+# stopwords = stopwords.words('english')
 
 
 def convert_list_to_str(list_wrd_idx):
@@ -87,7 +88,7 @@ def synonym_replacement(text, alpha, num_aug):
     # Possible wrd_idx that can be flipped
     pos_flip_wrd_idx = list(set(range(num_wrds)).difference(stop_wrd_idx).difference(invalid_wrd_idx))
 
-    num_wrd_flip = math.ceil(alpha * num_wrds)
+    num_wrd_flip = max(math.ceil(alpha * num_wrds), 2)
 
     list_agmnt = []
     set_flip_wrd_idx = set()
@@ -148,7 +149,7 @@ def random_flip(text, alpha, num_aug):
     list_wrds = list(word_tokenize(text))
     num_wrds = len(list_wrds)
 
-    num_wrd_flip = math.ceil(alpha * num_wrds)
+    num_wrd_flip = max(math.ceil(alpha * num_wrds), 2)
 
     list_agmnt = []
     set_flip_wrd_idx = set()
@@ -196,7 +197,7 @@ def random_insert(text, alpha, num_aug):
     list_wrds = word_tokenize(text)
     num_wrds = len(list_wrds)
 
-    num_wrd_ins = math.ceil(alpha * num_wrds)
+    num_wrd_ins = max(math.ceil(alpha * num_wrds), 2)
 
     list_agmnt = []
     hash_agmnt = set()
@@ -299,7 +300,7 @@ def word_flip(text, alpha, num_aug, set_words):
     list_wrds = list(word_tokenize(text))
     num_wrds = len(list_wrds)
 
-    num_wrd_flip = math.ceil(alpha * num_wrds)
+    num_wrd_flip = max(math.ceil(alpha * num_wrds), 2)
 
     list_agmnt = []
     set_flip_wrd_idx = set()
