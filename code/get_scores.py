@@ -31,8 +31,8 @@ def get_dict_test_scores(exp_dir):
     print(dict_seed_to_test_acc)
 
     average = np.mean(np.asarray(list(dict_seed_to_test_f1.values())))
-    std_dev = scipy.stats.sem(np.asarray(list(dict_seed_to_test_f1.values())))
-    ci = std_error * scipy.stats.t.ppf((1 + 0.95) / 2., n - 1)
+    std_dev = stats.sem(np.asarray(list(dict_seed_to_test_f1.values())))
+    ci = std_error * stats.t.ppf((1 + 0.95) / 2., n - 1)
 
     print("Average: %.3f, Std Dev: %.3f, CI: %.3f " % (average, std_dev, ci))
     print(dict_seed_to_test_f1)
