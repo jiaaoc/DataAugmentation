@@ -6,6 +6,7 @@ import numpy as np
 def get_dict_test_scores(exp_dir):
 
     dict_seed_to_test_acc = {}
+    dict_seed_to_test_f1 = {}
 
     for seed_dir_name in os.listdir(exp_dir):
         seed = int(seed_dir_name.replace("seed_", ""))
@@ -15,9 +16,10 @@ def get_dict_test_scores(exp_dir):
             first_line = f.readline()
             score_json = json.loads(first_line)
             test_acc = score_json["best_test_acc"]
+            test_f1 = score_json["best_test_f1"]
 
             dict_seed_to_test_acc[seed] = test_acc
-
+            dict_seed_to_test_f1[seed] = test_f1
 
     average = np.mean(np.asarray(list(dict_seed_to_test_acc.values())))
     std_dev = np.std(np.asarray(list(dict_seed_to_test_acc.values())))
@@ -25,6 +27,11 @@ def get_dict_test_scores(exp_dir):
     print("Average: %.3f, Std Dev: %.3f " % (average, std_dev))
     print(dict_seed_to_test_acc)
 
+    average = np.mean(np.asarray(list(dict_seed_to_test_f1.values())))
+    std_dev = np.std(np.asarray(list(dict_seed_to_test_f1.values())))
+
+    print("Average: %.3f, Std Dev: %.3f " % (average, std_dev))
+    print(dict_seed_to_test_f1)
 
 
 if __name__ == "__main__":
