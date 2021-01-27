@@ -5,17 +5,17 @@ from code.CLS_model import CLS_model
 from code.Config import Config
 import torch.utils.data as Data
 import json
+import os
 
 from code.train import validate
 from code.util import ParseKwargs
 from code.read_data import get_data
 
 parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
-parser.add_argument('-c', '--config_file', required=True)
-parser.add_argument('-k', '--kwargs', nargs='*', action=ParseKwargs)
+parser.add_argument('-e', '--exp_dir', required=True)
 args = parser.parse_args()
 
-config = Config(args.config_file, args.kwargs)
+config = Config(os.path.join(args.exp_dir, 'config.json'), args.kwargs)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
