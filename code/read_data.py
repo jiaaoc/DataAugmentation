@@ -99,10 +99,10 @@ class Augmentor:
         #TODO: Implement for ori_2
         elif self.transform_type == 'WordReplacementLM':
             for i in range(0, self.transform_times):
-                augmented_data.append(self.transform[0][idx][i])
+                augmented_data.append(self.transform[i][idx])
         elif self.transform_type == 'BackTranslation':
             for i in range(0, self.transform_times):
-                augmented_data.append(self.transform[0][idx][i])
+                augmented_data.append(self.transform[i][idx])
         elif self.transform_type == "Cutoff":
             augmented_data = span_cutoff(ori, 0.1, self.transform_times)
             if ori_2 is not None:
@@ -197,22 +197,22 @@ def get_ag_news_data(config):
 
     if config.n_labeled_per_class == -1:
         train_labels = np.array([v-1 for v in train_df[0]])
-        train_text = np.array([v for v in train_df[2]])
+        train_text = np.array([[v] for v in train_df[2]])
         del train_df
 
         test_labels = np.array([u-1 for u in test_df[0]])
-        test_text = np.array([v for v in test_df[2]])
+        test_text = np.array([[v] for v in test_df[2]])
         del test_df
 
         return train_text, train_labels, test_text, test_labels, None
 
     else:
         train_labels = np.array([v-1 for v in train_df[0]])
-        train_text = np.array([v for v in train_df[2]])
+        train_text = np.array([[v] for v in train_df[2]])
         del train_df
 
         test_labels = np.array([u-1 for u in test_df[0]])
-        test_text = np.array([v for v in test_df[2]])
+        test_text = np.array([[v] for v in test_df[2]])
         del test_df
 
         n_labels = max(test_labels) + 1
@@ -224,15 +224,6 @@ def get_ag_news_data(config):
             idxs = np.where(train_labels == i)[0]
             np.random.shuffle(idxs)
             train_idx_pool.extend(idxs[:1000 + 20000])
-
-
-        #train_text =train_text[train_idx_pool]
-        #train_labels = train_labels[train_idx_pool]
-
-        #idx_mapping = {}
-        
-        #for (i, idx) in enumerate(train_idx_pool):
-        #    idx_mapping[i] = idx
 
         return train_text, train_labels, test_text, test_labels, train_idx_pool
 
@@ -405,7 +396,7 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
 
             num_data = len(labels)
 
-            num_val = min(int(0.2 * num_data), 1000)
+            num_val = min(int(0.2 * num_data), 5000)
 
             np.random.seed(seed)
             rand_perm = np.arange(num_data)
@@ -549,7 +540,11 @@ class loader_unlabeled(Dataset):
         return tokens
 
     def __getitem__(self, idx):
+
+        #print(self.text[idx])
+
         ori = self.text[idx]
+
 
         if len(ori) == 2:
             ori_a = ori[0]
@@ -564,6 +559,10 @@ class loader_unlabeled(Dataset):
             ori = ori[0]
 
             augmented_data, _, _ = self.augmentor(ori, idx=self.ids[idx])
+
+            #print('ori', ori)
+
+            #print('aug', augmented_data)
             encode_result_u = self.get_tokenized(augmented_data)[0]
             encode_result_ori = self.get_tokenized(ori)
 
