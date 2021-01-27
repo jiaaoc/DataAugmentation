@@ -370,7 +370,7 @@ def get_data(config):
     elif "yahoo" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl, train_idx_pool = get_yahoo_data(config)
     elif "pubmed" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_pubmed_data()
+        train_txt, train_labels, test_txt, test_lbl = get_pubmed_data(config)
     elif "mnli" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_mnli_data(config)
     elif "qqp" in config.dataset.lower():
