@@ -11,13 +11,6 @@ from code.train import validate
 from code.util import ParseKwargs
 from code.read_data import get_data
 
-parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
-parser.add_argument('-e', '--exp_dir', required=True)
-args = parser.parse_args()
-
-config = Config(os.path.join(args.exp_dir, 'config.json'), args.kwargs)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def test(config):
@@ -33,10 +26,17 @@ def test(config):
 
     model.load_state_dict(torch.load(config.best_model_file))
     test_loss, test_acc, test_f1 = validate(
-        config, test_loader, model, criterion, config.epoch, mode='Test Stats ')
+        config, test_loader, model, criterion, config.epochs, mode='Test Stats ')
     with open(config.test_score_file, 'a+') as f:
-        f.write(json.dumps({"epoch": config.epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
+        f.write(json.dumps({"epoch": config.epochs, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-e', '--exp_dir', required=True)
+    args = parser.parse_args()
+
+    config = Config(os.path.join(args.exp_dir, 'config.json'), {})
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    config.device = device
     test(config)

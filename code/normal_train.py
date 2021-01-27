@@ -25,24 +25,12 @@ from code.util import set_seeds
 
 
 
-parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
-parser.add_argument('-c', '--config_file', required=True)
-parser.add_argument('-k', '--kwargs', nargs='*', action=ParseKwargs)
 
-args = parser.parse_args()
-
-config = Config(args.config_file, args.kwargs)
-
-os.environ['CUDA_VISIBLE_DEVICES'] = str(config.gpu)
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-best_acc = 0
 
 def main(config):
     set_seeds(config.seed)
 
-    global best_acc
+    best_acc = 0
 
     train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(config)
     labeled_trainloader = Data.DataLoader(
@@ -96,7 +84,7 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
         inputs = inputs.reshape(-1, config.max_seq_length)
         targets = targets.reshape(-1, )
 
-        inputs, targets = inputs.to(device), targets.to(device)
+        inputs, targets = inputs.to(config.device), targets.to(config.device)
         inputs = inputs.reshape(-1, inputs.shape[-1])
         targets = targets.reshape(-1)
 
@@ -120,4 +108,17 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
+    parser.add_argument('-c', '--config_file', required=True)
+    parser.add_argument('-k', '--kwargs', nargs='*', action=ParseKwargs)
+
+    args = parser.parse_args()
+
+    config = Config(args.config_file, args.kwargs)
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(config.gpu)
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    config.device = device
+
     main(config)
