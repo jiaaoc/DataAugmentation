@@ -119,6 +119,8 @@ class Augmentor:
             if ori_2 is None:
                 for i in range(0, self.transform_times):
                     augmented_data.append(self.transform[i][idx])
+                while len(augmented_data[0]) < 2:
+                    augmented_data[0].append(['.'])
             else:
                 for i in range(0, self.transform_times):
                     augmented_data.append(self.transform[i][idx][0][0])
