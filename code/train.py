@@ -158,7 +158,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         
         less_than_threshold = torch.exp(sup_loss) < tsa_thresh  # prob = exp(log_prob), prob > tsa_threshold
         
-        Lx = torch.sum(sup_loss * less_than_threshold, dim=-1) / torch.max(torch.sum(less_than_threshold, dim=-1),
+        Lx = - torch.sum(sup_loss * less_than_threshold, dim=-1) / torch.max(torch.sum(less_than_threshold, dim=-1),
                                                                            torch.tensor(1.).to(device).long())
 
         probs_u = torch.log_softmax(outputs_u, dim=1)
