@@ -253,6 +253,34 @@ def get_qqp_data(config):
 
     return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
 
+def get_rte_data(config):
+    dict_lbl_2_idx = {"not_entailment":0, "entailment": 1}
+
+    def read_tsv(filepath):
+        list_lbl = []
+        list_txt = []
+
+        with open(filepath, 'r') as f:
+            # Read header path
+            f.readline()
+
+            for idx, line in enumerate(f.readlines()):
+                tab_split = line.strip('\n').split('\t')
+
+                sentence_1 = tab_split[1]
+                sentence_2 = tab_split[2]
+                lbl = int(dict_lbl_2_idx[tab_split[3]])
+
+                list_txt.append([sentence_1, sentence_2])
+                list_lbl.append(lbl)
+
+        return list_txt, list_lbl
+
+    train_txt, train_lbl = read_tsv(os.path.join(config.datapath, "train.tsv"))
+    test_txt, test_lbl = read_tsv(os.path.join(config.datapath, "dev.tsv"))
+
+    return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
+
 
 
 def get_data(config):
@@ -297,7 +325,7 @@ def get_data(config):
     elif "qnli" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_qnli_data(config)
     elif "rte" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_rte_data()
+        train_txt, train_labels, test_txt, test_lbl = get_rte_data(config)
     elif "cola" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_cola_data()
     else:
