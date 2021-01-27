@@ -136,18 +136,18 @@ class Augmentor:
             self.transform = []
             # Pre-processed German data
             if 'ag_news' in path:
-                with open(path + 'yahoo_answers_de_labeled.pkl', 'rb') as f:
+                with open(path + '/ag_news_de_labeled.pkl', 'rb') as f:
                     de = pickle.load(f)
                     
-                with open(path + 'yahoo_answers_de_unlabeled.pkl', 'rb') as f:
+                with open(path + '/ag_news_de_unlabeled.pkl', 'rb') as f:
                     de_u = pickle.load(f)
                 
                 de.update(de_u)
                 self.transform.append(de)
-
-            with open(path + 'de_1.pkl', 'rb') as f:
-                de = pickle.load(f)
-                self.transform.append(de)
+            else:
+                with open(path + 'de_1.pkl', 'rb') as f:
+                    de = pickle.load(f)
+                    self.transform.append(de)
             # # Pre-processed Russian data
             # with open(path + 'ru_1.pkl', 'rb') as f:
             #     ru = pickle.load(f)
@@ -158,25 +158,25 @@ class Augmentor:
         augmented_data_2 = None
 
         if self.transform_type == 'SynonymReplacement':
-            augmented_data = synonym_replacement(ori, 0.3, self.transform_times)
+            augmented_data = synonym_replacement(ori, 0.1, self.transform_times)
             if ori_2 is not None:
-                augmented_data_2 = synonym_replacement(ori_2, 0.3, self.transform_times)
+                augmented_data_2 = synonym_replacement(ori_2, 0.1, self.transform_times)
         elif self.transform_type == 'WordReplacementVocab':
-            augmented_data = word_flip(ori, 0.3, self.transform_times, self.set_wrds)
+            augmented_data = word_flip(ori, 0.1, self.transform_times, self.set_wrds)
             if ori_2 is not None:
-                augmented_data_2 = word_flip(ori_2, 0.3, self.transform_times, self.set_wrds)
+                augmented_data_2 = word_flip(ori_2, 0.1, self.transform_times, self.set_wrds)
         elif self.transform_type == 'RandomInsertion':
-            augmented_data = random_insert(ori, 0.3, self.transform_times)
+            augmented_data = random_insert(ori, 0.1, self.transform_times)
             if ori_2 is not None:
-                augmented_data_2 = random_insert(ori_2, 0.3, self.transform_times)
+                augmented_data_2 = random_insert(ori_2, 0.1, self.transform_times)
         elif self.transform_type == 'RandomDeletion':
-            augmented_data = random_delete(ori, 0.3, self.transform_times)
+            augmented_data = random_delete(ori, 0.1, self.transform_times)
             if ori_2 is not None:
-                augmented_data_2 = random_delete(ori_2, 0.3, self.transform_times)
+                augmented_data_2 = random_delete(ori_2, 0.1, self.transform_times)
         elif self.transform_type == 'RandomSwapping':
-            augmented_data = random_flip(ori, 0.3, self.transform_times)
+            augmented_data = random_flip(ori, 0.1, self.transform_times)
             if ori_2 is not None:
-                augmented_data_2 = random_flip(ori_2, 0.3, self.transform_times)
+                augmented_data_2 = random_flip(ori_2, 0.1, self.transform_times)
         #TODO: Implement for ori_2
         elif self.transform_type == 'WordReplacementLM':
             for i in range(0, self.transform_times):
@@ -185,9 +185,9 @@ class Augmentor:
             for i in range(0, self.transform_times):
                 augmented_data.append(self.transform[0][idx][i])
         elif self.transform_type == "Cutoff":
-            augmented_data = span_cutoff(ori, 0.3, self.transform_times)
+            augmented_data = span_cutoff(ori, 0.1, self.transform_times)
             if ori_2 is not None:
-                augmented_data_2 = span_cutoff(ori_2, 0.3, self.transform_times)
+                augmented_data_2 = span_cutoff(ori_2, 0.1, self.transform_times)
 
         return augmented_data, augmented_data_2, ori
 
@@ -287,7 +287,7 @@ def get_ag_news_data(config):
         train_idx_pool = []
 
         for i in range(n_labels):
-            idxs = np.where(labels == i)[0]
+            idxs = np.where(train_labels == i)[0]
             np.random.shuffle(idxs)
             train_idx_pool.extend(idxs[:1000 + 20000])
 
@@ -324,7 +324,7 @@ def get_data(config):
     # Labels must be 0 indexed
     # All datasets must return lists of lists
     if "ag_news" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl, train_idx_pool = get_ag_news_data()
+        train_txt, train_labels, test_txt, test_lbl, train_idx_pool = get_ag_news_data(config)
     elif "20_ng" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_twenty_ng_data(config)
     elif "yahoo" in config.dataset.lower():
@@ -413,7 +413,7 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
             np.random.seed(seed)
             
             
-            rand_perm = train_idx_pool.copy()
+            rand_perm = np.array(train_idx_pool.copy())
             np.random.shuffle(rand_perm)
 
             val_idxs = rand_perm[-num_val:]

@@ -30,6 +30,20 @@ from code.util import set_seeds
 
 
 
+parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
+parser.add_argument('-c', '--config_file', required=True)
+parser.add_argument('-k', '--kwargs', nargs='*', action=ParseKwargs)
+
+args = parser.parse_args()
+
+config = Config(args.config_file, args.kwargs)
+
+os.environ['CUDA_VISIBLE_DEVICES'] = str(config.gpu)
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+n_gpu = torch.cuda.device_count()
+
+best_acc = 0
 
 def main(config):
     set_seeds(config.seed)
@@ -58,6 +72,8 @@ def main(config):
     optimizer = AdamW(model.parameters(), lr=config.lr)
 
     criterion = nn.CrossEntropyLoss()
+
+    f = open(config.dev_score_file, 'w')
 
     # Start training
     for epoch in range(config.epochs):
@@ -105,7 +121,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         inputs_x = inputs_x.reshape(-1, config.max_seq_length)
         targets_x = targets_x.reshape(-1)
 
-        print(inputs_x.shape, inputs_u.shape, inputs_ori.shape)
+        #print(inputs_x.shape, inputs_u.shape, inputs_ori.shape)
 
         batch_size = inputs_x.size(0)
         # inputs_x = torch.tensor(inputs_x[:,0]) # [bs * (1+num_aug), max_seq_len]
@@ -152,8 +168,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         if batch_idx % config.grad_accumulation_factor:
             optimizer.step()
             optimizer.zero_grad()
-
-        print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
+        if batch_idx % 400 == 0:
+            print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
                 epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))
 
 def validate(config, valloader, model, criterion, epoch, mode):
@@ -166,16 +182,22 @@ def validate(config, valloader, model, criterion, epoch, mode):
         pred_lbl = []
         true_lbl = []
 
-        for batch_idx, (inputs, targets, length) in enumerate(valloader):
+        for batch_idx, (inputs, targets) in enumerate(valloader):
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs)
+
+            targets = targets.reshape(-1)
             loss = criterion(outputs, targets)
 
-            pred_lbl.extend(np.array(predicted.cpu()).tolist())
-            true_lbl.extend(np.array(targets.cpu()).tolist())
+            #pred_lbl.extend(np.array(predicted.cpu()).tolist())
+            #true_lbl.extend(np.array(targets.cpu()).tolist())
 
             if config.is_classification:
                 _, predicted = torch.max(outputs.data, 1)
+
+
+                pred_lbl.extend(np.array(predicted.cpu()).tolist())
+                true_lbl.extend(np.array(targets.cpu()).tolist())
 
                 correct += (np.array(predicted.cpu()) ==
                             np.array(targets.cpu())).sum()
@@ -215,17 +237,9 @@ def get_tsa_thresh(schedule, global_step, num_train_steps, start, end, device):
     return output.to(device)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
-    parser.add_argument('-c', '--config_file', required=True)
-    parser.add_argument('-k', '--kwargs', nargs='*', action=ParseKwargs)
 
-    args = parser.parse_args()
 
-    config = Config(args.config_file, args.kwargs)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(config.gpu)
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    n_gpu = torch.cuda.device_count()
+    
 
     main(config)
