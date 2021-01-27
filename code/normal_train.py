@@ -83,7 +83,7 @@ def main(config):
 
     model.load_state_dict(torch.load(config.best_model_file))
     test_loss, test_acc, test_f1 = validate(
-        test_loader, model, criterion, epoch, mode='Test Stats ')
+        config, test_loader, model, criterion, epoch, mode='Test Stats ')
     with open(config.test_score_file, 'a+') as f:
         f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
 

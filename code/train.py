@@ -95,7 +95,7 @@ def main(config):
 
     model.load_state_dict(torch.load(config.best_model_file))
     test_loss, test_acc, test_f1 = validate(
-        test_loader, model, criterion, epoch, mode='Test Stats ')
+        config, test_loader, model, criterion, epoch, mode='Test Stats ')
     with open(config.test_score_file, 'a+') as f:
         f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
 
@@ -149,17 +149,25 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
 
         tsa_thresh = get_tsa_thresh("linear_schedule", cur_step, config.epochs, 0, 1/ n_labels, device)
 
+        
         outputs_x = logits[:batch_size]
         outputs_u = logits[batch_size:]
 
+
         sup_loss = torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1)  # [bs, ]
+        
         less_than_threshold = torch.exp(sup_loss) < tsa_thresh  # prob = exp(log_prob), prob > tsa_threshold
+        
         Lx = torch.sum(sup_loss * less_than_threshold, dim=-1) / torch.max(torch.sum(less_than_threshold, dim=-1),
                                                                            torch.tensor(1.).to(device).long())
 
         probs_u = torch.log_softmax(outputs_u, dim=1)
 
         Lu = F.kl_div(probs_u, sharp_outputs_ori_prob, reduction='batchmean')  # [bs, ]
+        
+
+        print("epoch {}, step {}, Lx {}, Lu {}".format(
+                epoch, batch_idx, Lx.item(), Lu.item()))
 
         loss = Lx + config.lambda_u * Lu
         loss += loss / config.grad_accumulation_factor
