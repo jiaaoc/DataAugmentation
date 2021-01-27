@@ -1,6 +1,6 @@
 {
-    "dataset": "qnli",
-    "datapath": "processed_data/QNLI",
+    "dataset": "rte",
+    "datapath": "processed_data/RTE",
     "pretrained_weight": "bert-base-uncased",
     "is_classification": true,
     "n_labeled_per_class": -1,
@@ -11,7 +11,7 @@
     "test_batch_size": 128,
     "epochs": 10,
     "grad_accumulation_factor": 2,
-    "lr": 2e-5,
+    "lr": 1e-5,
     "seed": 42,
     "transform_type": null
 }

@@ -94,8 +94,13 @@ def main(config):
 
 
     model.load_state_dict(torch.load(config.best_model_file))
+<<<<<<< HEAD
     test_loss, test_acc, test_f1 = validate(
         config, test_loader, model, criterion, epoch, mode='Test Stats ')
+=======
+    test_loss, test_acc, test_f1 = validate(config,
+        test_loader, model, criterion, epoch, mode='Test Stats ')
+>>>>>>> 40f5cf2c0ca9dace9e6a0374c2ad8f655722fc35
     with open(config.test_score_file, 'a+') as f:
         f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
 

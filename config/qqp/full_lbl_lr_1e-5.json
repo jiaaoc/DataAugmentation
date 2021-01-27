@@ -1,6 +1,6 @@
 {
-    "dataset": "mnli",
-    "datapath": "processed_data/MNLI",
+    "dataset": "qqp",
+    "datapath": "processed_data/QQP",
     "pretrained_weight": "bert-base-uncased",
     "is_classification": true,
     "n_labeled_per_class": -1,
@@ -9,9 +9,9 @@
     "lambda_u": 1,
     "batch_size": 16,
     "test_batch_size": 128,
-    "epochs": 5,
+    "epochs": 10,
     "grad_accumulation_factor": 2,
-    "lr": 2e-5,
+    "lr": 1e-5,
     "seed": 42,
     "transform_type": null
 }
