@@ -73,6 +73,8 @@ def main(config):
 
     criterion = nn.CrossEntropyLoss()
 
+    f = open(config.dev_score_file, 'w')
+
     # Start training
     for epoch in range(config.epochs):
         train(labeled_trainloader, unlabeled_trainloader, model, optimizer,
@@ -119,7 +121,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         inputs_x = inputs_x.reshape(-1, config.max_seq_length)
         targets_x = targets_x.reshape(-1)
 
-        print(inputs_x.shape, inputs_u.shape, inputs_ori.shape)
+        #print(inputs_x.shape, inputs_u.shape, inputs_ori.shape)
 
         batch_size = inputs_x.size(0)
         # inputs_x = torch.tensor(inputs_x[:,0]) # [bs * (1+num_aug), max_seq_len]
@@ -168,8 +170,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         if batch_idx % config.grad_accumulation_factor:
             optimizer.step()
             optimizer.zero_grad()
-
-        print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
+        if batch_idx % 400 == 0:
+            print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
                 epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))
 
 def validate(config, valloader, model, criterion, epoch, mode):
