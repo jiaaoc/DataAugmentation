@@ -12,87 +12,6 @@ from data.augmentation import synonym_replacement, random_flip, random_insert, r
 
 
 
-class GlueAugmentor:
-    """Add different Augmentation here: Synonym Replacement, Word Replacement from Vocab, Random Insertion/deletion/swapping, Word Replacement from LM, BackTranslation
-    """
-
-    def __init__(self, path=None, transform_type='BackTranslation', transform_times=1):
-
-        self.transform_type = transform_type
-        self.transform_times = transform_times
-
-        self.set_wrds = set()
-
-        if transform_type == 'SynonymReplacement':
-            pass
-        elif transform_type == 'WordReplacementVocab':
-            if "hs" in path or "bias" in path or "20_ng" in path or "pubmed" in path:
-                train_df = read_csv(path + 'train.csv')
-            else:
-                train_df = pd.read_csv(path + 'train.csv', header=None)
-
-            # Here we only use the bodies and removed titles to do the classifications
-            for txt in train_df[2]:
-                self.set_wrds.update(txt.split(' '))
-
-            self.set_wrds = list(self.set_wrds)
-
-        elif transform_type == 'RandomInsertion':
-            pass
-        elif transform_type == 'RandomDeletion':
-            pass
-        elif transform_type == 'RandomSwapping':
-            pass
-        elif transform_type == 'WordReplacementLM':
-            self.transform = []
-            # Pre-processed German data
-            with open(path + 'mlm.pkl', 'rb') as f:
-                mlm = pickle.load(f)
-                self.transform.append(mlm)
-
-        elif transform_type == 'BackTranslation':
-            self.transform = []
-            # Pre-processed German data
-            with open(path + 'de_1.pkl', 'rb') as f:
-                de = pickle.load(f)
-                self.transform.append(de)
-            # # Pre-processed Russian data
-            # with open(path + 'ru_1.pkl', 'rb') as f:
-            #     ru = pickle.load(f)
-            #     self.transform.append(ru)
-
-    def __call__(self, ori_1, ori_2, idx):
-        augmented_data = []
-        augmented_data_2 = []
-
-        if self.transform_type == 'SynonymReplacement':
-            augmented_data = synonym_replacement(ori_1, 0.1, self.transform_times)
-            augmented_data_2 = synonym_replacement(ori_2, 0.1, self.transform_times)
-        elif self.transform_type == 'WordReplacementVocab':
-            augmented_data = word_flip(ori_1, 0.1, self.transform_times, self.set_wrds)
-            augmented_data_2 = word_flip(ori_2, 0.1, self.transform_times, self.set_wrds)
-        elif self.transform_type == 'RandomInsertion':
-            augmented_data = random_insert(ori_1, 0.1, self.transform_times)
-            augmented_data_2 = random_insert(ori_2, 0.1, self.transform_times)
-        elif self.transform_type == 'RandomDeletion':
-            augmented_data = random_delete(ori_1, 0.1, self.transform_times)
-            augmented_data_2 = random_delete(ori_2, 0.1, self.transform_times)
-        elif self.transform_type == 'RandomSwapping':
-            augmented_data = random_flip(ori_1, 0.1, self.transform_times)
-            augmented_data_2 = random_flip(ori_2, 0.1, self.transform_times)
-        elif self.transform_type == 'WordReplacementLM':
-            for i in range(0, self.transform_times):
-                augmented_data.append(self.transform[0][idx][i])
-        elif self.transform_type == 'BackTranslation':
-            for i in range(0, self.transform_times):
-                augmented_data.append(self.transform[0][idx][i])
-        elif self.transform_type == "Cutoff":
-            augmented_data = span_cutoff(ori_1, 0.1, self.transform_times)
-            augmented_data_2 = span_cutoff(ori_2, 0.1, self.transform_times)
-
-        return augmented_data, augmented_data_2, ori_1, ori_2
-
-
 
 class Augmentor:
     """Add different Augmentation here: Synonym Replacement, Word Replacement from Vocab, Random Insertion/deletion/swapping, Word Replacement from LM, BackTranslation
@@ -191,22 +110,6 @@ class Augmentor:
 
         return augmented_data, augmented_data_2, ori
 
-def read_glue(datasets, top_k=None):
-
-    if top_k is None:
-        datasets_list = datasets[:len(datasets)]
-    else:
-        datasets_list = datasets[:top_k]
-
-
-
-    list_labels = datasets_list["label"]
-    list_text_1 = datasets_list["premise"]
-    list_text_2 = datasets_list["hypothesis"]
-
-    return [np.asarray(list_labels), np.asarray(list_text_1), np.asarray(list_text_2)]
-
-
 def get_twenty_ng_data(config):
     def read_csv(filepath):
         list_lbl = []
@@ -253,6 +156,37 @@ def get_qnli_data(config):
     test_txt, test_lbl = read_tsv(os.path.join(config.datapath, "dev.tsv"))
 
     return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
+
+
+def get_mnli_data(config):
+    dict_lbl_2_idx = {"contradiction":0, "neutral": 1, "entailment": 2}
+
+    def read_tsv(filepath):
+        list_lbl = []
+        list_txt = []
+
+        with open(filepath, 'r') as f:
+            # Read header path
+            f.readline()
+
+            for idx, line in enumerate(f.readlines()):
+                tab_split = line.strip('\n').split('\t')
+
+                sentence_1 = tab_split[8]
+                sentence_2 = tab_split[9]
+                lbl = int(dict_lbl_2_idx[tab_split[11]])
+
+                list_txt.append([sentence_1, sentence_2])
+                list_lbl.append(lbl)
+
+        return list_txt, list_lbl
+
+    train_txt, train_lbl = read_tsv(os.path.join(config.datapath, "train.tsv"))
+    test_txt, test_lbl = read_tsv(os.path.join(config.datapath, "dev_matched.tsv"))
+
+    return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
+
+
 
 def get_ag_news_data(config):
     
@@ -332,7 +266,7 @@ def get_data(config):
     elif "pubmed" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_pubmed_data()
     elif "mnli" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_mnli_data()
+        train_txt, train_labels, test_txt, test_lbl = get_mnli_data(config)
     elif "qqp" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_qqp_data()
     elif "sst2" in config.dataset.lower():
@@ -495,7 +429,7 @@ class loader_labeled(Dataset):
         return len(self.labels)
 
     def get_double_tokenized(self, text_1, text_2):
-        tokens = self.tokenizer(text_1, text_2, padding="max_length", truncation="only_first", add_special_tokens=True, max_length=self.max_seq_len)["input_ids"]
+        tokens = self.tokenizer(text_1, text_2, padding="max_length", truncation="longest_first", add_special_tokens=True, max_length=self.max_seq_len)["input_ids"]
         return tokens
 
     def get_tokenized(self, text):
@@ -579,7 +513,7 @@ class loader_unlabeled(Dataset):
         return len(self.text)
 
     def get_double_tokenized(self, text_1, text_2):
-        tokens = self.tokenizer(text_1, text_2, padding="max_length", truncation="only_first", add_special_tokens=True, max_length=self.max_seq_len)["input_ids"]
+        tokens = self.tokenizer(text_1, text_2, padding="max_length", truncation="longest_first", add_special_tokens=True, max_length=self.max_seq_len)["input_ids"]
         return tokens
 
     def get_tokenized(self, text):
