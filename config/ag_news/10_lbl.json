@@ -1,0 +1,19 @@
+{
+    "model": "BertTextClassification",
+    "dataset": "ag_news",
+    "datapath": "processed_data/ag_news_csv",
+    "pretrained_weight": "bert-base-uncased",
+    "is_classification": true,
+    "n_labeled_per_class": 10,
+    "unlabeled_per_class": 1000,
+    "sharp_temperature": 1,
+    "lambda_u": 1,
+    "batch_size": 4,
+    "batch_size_u": 12,
+    "test_batch_size": 64,
+    "epochs": 25,
+    "val_iteration": 800,
+    "grad_accumulation_factor": 4,
+    "lr": 2e-5,
+    "transform_type": "RandomInsertion"
+}
