@@ -236,6 +236,34 @@ def get_ag_news_data(config):
 
         return train_text, train_labels, test_text, test_labels, train_idx_pool
 
+def get_qqp_data(config):
+    def read_tsv(filepath):
+        list_lbl = []
+        list_txt = []
+
+        with open(filepath, 'r') as f:
+            # Read header path
+            f.readline()
+
+            for idx, line in enumerate(f.readlines()):
+                tab_split = line.strip('\n').split('\t')
+
+                question_1 = tab_split[3]
+                question_2 = tab_split[4]
+                lbl = int(tab_split[5])
+
+                list_txt.append([question_1, question_2])
+                list_lbl.append(lbl)
+
+        return list_txt, list_lbl
+
+    train_txt, train_lbl = read_tsv(os.path.join(config.datapath, "train.tsv"))
+    test_txt, test_lbl = read_tsv(os.path.join(config.datapath, "dev.tsv"))
+
+    return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
+
+
+
 def get_data(config):
 
     """Read data, split the dataset, and build dataset for dataloaders.
@@ -268,7 +296,7 @@ def get_data(config):
     elif "mnli" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_mnli_data(config)
     elif "qqp" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_qqp_data()
+        train_txt, train_labels, test_txt, test_lbl = get_qqp_data(config)
     elif "sst2" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_sst2_data()
     elif "mrpc" in config.dataset.lower():
