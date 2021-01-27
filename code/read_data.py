@@ -114,7 +114,6 @@ class Augmentor:
             augmented_data = random_flip(ori, 0.1, self.transform_times)
             if ori_2 is not None:
                 augmented_data_2 = random_flip(ori_2, 0.1, self.transform_times)
-        #TODO: Implement for ori_2
         elif self.transform_type == 'WordReplacementLM':
             augmented_data_2 = []
             if ori_2 is None:
@@ -127,8 +126,15 @@ class Augmentor:
                     augmented_data_2.append(self.transform[i][idx][1][0])
 
         elif self.transform_type == 'BackTranslation':
-            for i in range(0, self.transform_times):
-                augmented_data.append(self.transform[i][idx])
+            augmented_data_2 = []
+            if ori_2 is None:
+                for i in range(0, self.transform_times):
+                    augmented_data.append(self.transform[i][idx])
+            else:
+                for i in range(0, self.transform_times):
+                    augmented_data.append(self.transform[i][idx][0][0])
+                for i in range(0, self.transform_times):
+                    augmented_data_2.append(self.transform[i][idx][1][0])
         elif self.transform_type == "Cutoff":
             augmented_data = span_cutoff(ori, 0.1, self.transform_times)
             if ori_2 is not None:
@@ -216,7 +222,6 @@ def get_mnli_data(config):
 
 def get_ag_news_data(config):
     
-    
     train_df = pd.read_csv(os.path.join(config.datapath, "train.csv"), header=None)
     test_df = pd.read_csv(os.path.join(config.datapath, "test.csv"), header=None)
 
@@ -292,6 +297,7 @@ def get_yahoo_data(config):
             train_idx_pool.extend(idxs[:1000 + 20000])
 
         return train_text, train_labels, test_text, test_labels, train_idx_pool
+
 def get_qqp_data(config):
     def read_tsv(filepath):
         list_lbl = []

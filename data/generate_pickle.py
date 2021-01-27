@@ -112,6 +112,73 @@ def pickle_rte():
 
 
 
+def pickle_qnli():
+    def read_tsv(filepath):
+        list_txt = []
+
+        with open(filepath, 'r') as f:
+            # Read header path
+            f.readline()
+
+            for idx, line in enumerate(f.readlines()):
+                tab_split = line.strip('\n').split('\t')
+
+                question = tab_split[1]
+                sentence = tab_split[2]
+
+                list_txt.append([question, sentence])
+
+        return list_txt
+
+    train_txt = read_tsv(os.path.join("processed_data", "QNLI", "train.tsv"))
+
+    train_pk_file = os.path.join("processed_data", "QNLI",  "train_unlabeled_data.pkl")
+    dict_train_input = {}
+
+    ctr = 0
+    for text in train_txt:
+        dict_train_input[ctr] = text
+        ctr += 1
+
+    with open(train_pk_file, 'wb') as handle:
+        pickle.dump(dict_train_input, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+
+def pickle_qqp():
+    def read_tsv(filepath):
+        list_txt = []
+
+        with open(filepath, 'r') as f:
+            # Read header path
+            f.readline()
+
+            for idx, line in enumerate(f.readlines()):
+                tab_split = line.strip('\n').split('\t')
+
+                question_1 = tab_split[3]
+                question_2 = tab_split[4]
+                lbl = int(tab_split[5])
+
+                list_txt.append([question_1, question_2])
+
+        return list_txt
+
+    train_txt = read_tsv(os.path.join("processed_data", "QQP", "train.tsv"))
+
+    train_pk_file = os.path.join("processed_data", "QQP",  "train_unlabeled_data.pkl")
+    dict_train_input = {}
+
+    ctr = 0
+    for text in train_txt:
+        dict_train_input[ctr] = text
+        ctr += 1
+
+    with open(train_pk_file, 'wb') as handle:
+        pickle.dump(dict_train_input, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+
 
 def generate_pickle(dataset):
     if dataset == "20_ng":
@@ -122,8 +189,10 @@ def generate_pickle(dataset):
         pickle_mnli()
     elif dataset == "rte":
         pickle_rte()
-
-
+    elif dataset == "qnli":
+        pickle_qnli()
+    elif dataset == "qqp":
+        pickle_qqp()
 
 def generate_csv_20_ng():
     newsgroups_train = fetch_20newsgroups(subset='train')
