@@ -81,7 +81,7 @@ def main(config):
             epoch, n_labels, config)
 
         val_loss, val_acc, val_f1 = validate(
-            val_loader, model, criterion, epoch, mode='Valid Stats')
+            config, val_loader, model, criterion, epoch, mode='Valid Stats')
 
         print("epoch {}, val acc {}, val_loss {}".format(epoch, val_acc, val_loss))
 

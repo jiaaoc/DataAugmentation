@@ -180,10 +180,10 @@ class Augmentor:
         #TODO: Implement for ori_2
         elif self.transform_type == 'WordReplacementLM':
             for i in range(0, self.transform_times):
-                augmented_data.append(self.transform[0][idx][i])
+                augmented_data.append(self.transform[i][idx])
         elif self.transform_type == 'BackTranslation':
             for i in range(0, self.transform_times):
-                augmented_data.append(self.transform[0][idx][i])
+                augmented_data.append(self.transform[i][idx])
         elif self.transform_type == "Cutoff":
             augmented_data = span_cutoff(ori, 0.1, self.transform_times)
             if ori_2 is not None:
@@ -291,14 +291,6 @@ def get_ag_news_data(config):
             np.random.shuffle(idxs)
             train_idx_pool.extend(idxs[:1000 + 20000])
 
-
-        #train_text =train_text[train_idx_pool]
-        #train_labels = train_labels[train_idx_pool]
-
-        #idx_mapping = {}
-        
-        #for (i, idx) in enumerate(train_idx_pool):
-        #    idx_mapping[i] = idx
 
         return train_text, train_labels, test_text, test_labels, train_idx_pool
 
@@ -587,6 +579,9 @@ class loader_unlabeled(Dataset):
         return tokens
 
     def __getitem__(self, idx):
+
+        #print(self.text[idx])
+
         ori = self.text[idx]
 
         if len(ori) == 2:
@@ -599,9 +594,13 @@ class loader_unlabeled(Dataset):
             encode_result_ori = self.get_double_tokenized(ori_a, ori_b)
 
         else:
-            ori = ori[0]
+            ori = ori
 
             augmented_data, _, _ = self.augmentor(ori, idx=self.ids[idx])
+
+            #print('ori', ori)
+
+            #print('aug', augmented_data)
             encode_result_u = self.get_tokenized(augmented_data)[0]
             encode_result_ori = self.get_tokenized(ori)
 
