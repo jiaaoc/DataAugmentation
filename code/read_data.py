@@ -217,6 +217,15 @@ def get_twenty_ng_data(config):
     return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
 
 
+
+def get_ag_news_data(config):
+    if config.n_labeled_per_class == -1:
+        pass
+    else:
+        pass
+
+
+
 def get_data(config):
 
     """Read data, split the dataset, and build dataset for dataloaders.
