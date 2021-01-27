@@ -110,7 +110,7 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
         loss = loss / config.grad_accumulation_factor
         loss.backward()
 
-        if batch_idx % config.grad_accumulation_factor:
+        if (batch_idx+1) % config.grad_accumulation_factor == 0:
             optimizer.step()
             optimizer.zero_grad()
 
