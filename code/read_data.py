@@ -158,25 +158,25 @@ class Augmentor:
         augmented_data_2 = None
 
         if self.transform_type == 'SynonymReplacement':
-            augmented_data = synonym_replacement(ori, 0.3, self.transform_times)
+            augmented_data = synonym_replacement(ori, 0.1, self.transform_times)
             if ori_2 is not None:
-                augmented_data_2 = synonym_replacement(ori_2, 0.3, self.transform_times)
+                augmented_data_2 = synonym_replacement(ori_2, 0.1, self.transform_times)
         elif self.transform_type == 'WordReplacementVocab':
-            augmented_data = word_flip(ori, 0.3, self.transform_times, self.set_wrds)
+            augmented_data = word_flip(ori, 0.1, self.transform_times, self.set_wrds)
             if ori_2 is not None:
-                augmented_data_2 = word_flip(ori_2, 0.3, self.transform_times, self.set_wrds)
+                augmented_data_2 = word_flip(ori_2, 0.1, self.transform_times, self.set_wrds)
         elif self.transform_type == 'RandomInsertion':
-            augmented_data = random_insert(ori, 0.3, self.transform_times)
+            augmented_data = random_insert(ori, 0.1, self.transform_times)
             if ori_2 is not None:
-                augmented_data_2 = random_insert(ori_2, 0.3, self.transform_times)
+                augmented_data_2 = random_insert(ori_2, 0.1, self.transform_times)
         elif self.transform_type == 'RandomDeletion':
-            augmented_data = random_delete(ori, 0.3, self.transform_times)
+            augmented_data = random_delete(ori, 0.1, self.transform_times)
             if ori_2 is not None:
-                augmented_data_2 = random_delete(ori_2, 0.3, self.transform_times)
+                augmented_data_2 = random_delete(ori_2, 0.1, self.transform_times)
         elif self.transform_type == 'RandomSwapping':
-            augmented_data = random_flip(ori, 0.3, self.transform_times)
+            augmented_data = random_flip(ori, 0.1, self.transform_times)
             if ori_2 is not None:
-                augmented_data_2 = random_flip(ori_2, 0.3, self.transform_times)
+                augmented_data_2 = random_flip(ori_2, 0.1, self.transform_times)
         #TODO: Implement for ori_2
         elif self.transform_type == 'WordReplacementLM':
             for i in range(0, self.transform_times):
@@ -185,9 +185,9 @@ class Augmentor:
             for i in range(0, self.transform_times):
                 augmented_data.append(self.transform[0][idx][i])
         elif self.transform_type == "Cutoff":
-            augmented_data = span_cutoff(ori, 0.3, self.transform_times)
+            augmented_data = span_cutoff(ori, 0.1, self.transform_times)
             if ori_2 is not None:
-                augmented_data_2 = span_cutoff(ori_2, 0.3, self.transform_times)
+                augmented_data_2 = span_cutoff(ori_2, 0.1, self.transform_times)
 
         return augmented_data, augmented_data_2, ori
 
