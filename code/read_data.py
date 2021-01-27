@@ -282,33 +282,24 @@ def get_rte_data(config):
     return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
 
 
-def get_20_ng(config):
-    dict_lbl_2_idx = {"not_entailment":0, "entailment": 1}
-
-    def read_tsv(filepath):
+def get_pubmed_data(config):
+    def read_csv(filepath):
         list_lbl = []
         list_txt = []
 
         with open(filepath, 'r') as f:
-            # Read header path
-            f.readline()
-
             for idx, line in enumerate(f.readlines()):
-                tab_split = line.strip('\n').split('\t')
-
-                sentence_1 = tab_split[1]
-                sentence_2 = tab_split[2]
-                lbl = int(dict_lbl_2_idx[tab_split[3]])
-
-                list_txt.append([sentence_1, sentence_2])
-                list_lbl.append(lbl)
+                comma_split = line.strip('\n').split(',')
+                if len(comma_split) > 2 and comma_split[0].isdigit() and comma_split[1].isdigit():
+                    list_lbl.append(int(comma_split[0]) - 1)
+                    list_txt.append([','.join(comma_split[2:])])
 
         return list_txt, list_lbl
 
-    train_txt, train_lbl = read_tsv(os.path.join(config.datapath, "train.tsv"))
-    test_txt, test_lbl = read_tsv(os.path.join(config.datapath, "dev.tsv"))
+    train_txt, train_lbl = read_csv(os.path.join(config.datapath, "train.csv"))
+    test_txt, test_lbl = read_csv(os.path.join(config.datapath, "test.csv"))
 
-    return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
+    return np.asarray(train_txt)[:130000], np.asarray(train_lbl)[:130000], np.asarray(test_txt), np.asarray(test_lbl)
 
 
 
