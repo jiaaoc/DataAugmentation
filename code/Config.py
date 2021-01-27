@@ -68,12 +68,13 @@ class Config(object):
             os.makedirs(base_dir)
 
         if self.n_labeled_per_class == -1:
-            now = datetime.datetime.now()
-            ts = "{:04d}-{:02d}-{:02d}-{:02d}-{:02d}-{:02d}".format(now.year, now.month, now.day, now.hour, now.minute,
-                                                                    now.second)
-            self.exp_dir = os.path.join(base_dir, ts)
             if not os.path.exists(self.exp_dir):
-                os.makedirs(self.exp_dir)
+                now = datetime.datetime.now()
+                ts = "{:04d}-{:02d}-{:02d}-{:02d}-{:02d}-{:02d}".format(now.year, now.month, now.day, now.hour, now.minute,
+                                                                        now.second)
+                self.exp_dir = os.path.join(base_dir, ts)
+                if not os.path.exists(self.exp_dir):
+                    os.makedirs(self.exp_dir)
 
         else:
             self.exp_dir = os.path.join(base_dir, "seed_%d" % self.seed)
