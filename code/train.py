@@ -130,8 +130,6 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
         targets_x = torch.zeros(batch_size, n_labels).scatter_(
             1, targets_x.view(-1, 1), 1) #[]
 
-
-
         inputs_x, targets_x = inputs_x.to(device), targets_x.to(device)
 
         inputs_u = inputs_u.to(device)

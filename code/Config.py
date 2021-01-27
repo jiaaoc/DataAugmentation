@@ -4,17 +4,16 @@ import ast
 
 class Config(object):
     def __init__(self, filename=None, kwargs=None):
-
+        # GPU id
         self.gpu = '0'
 
-        self.seed = 0
-
         # Dataset and model setup
-        self.model = "BertTextClassification"
         self.dataset = "glue/sst2"
         self.datapath = "processed_data/glue/sst2"
         self.pretrained_weight = "bert-base-uncased"
         self.is_classification = True
+        self.seed = 0
+
 
         # SSL setup
         self.n_labeled_per_class = 10
@@ -62,12 +61,12 @@ class Config(object):
         Updates the config default values based on parameters passed in from config file
         '''
 
-        base_dir = os.path.join("exp_out", self.dataset, "%d_lbl_%d_unlbl" % (self.n_labeled_per_class, self.unlabeled_per_class))
+        base_dir = os.path.join("exp_out", self.dataset, "%d_lbl_%d_unlbl" % (self.n_labeled_per_class, self.unlabeled_per_class), "%s" % self.transform_type)
 
         if not os.path.exists(base_dir):
             os.makedirs(base_dir)
 
-        self.exp_dir = os.path.join(base_dir, "%s" % self.transform_type)
+        self.exp_dir = os.path.join(base_dir, "seed_%d" % self.seed)
 
         if not os.path.exists(self.exp_dir):
             os.makedirs(self.exp_dir)
