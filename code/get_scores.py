@@ -2,8 +2,7 @@ import argparse
 import os
 import json
 import numpy as np
-import scipy
-
+from scipy import stats
 
 def get_dict_test_scores(exp_dir):
 
