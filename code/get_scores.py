@@ -31,3 +31,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PyTorch Data Augmentation')
     parser.add_argument('-e', '--exp_dir', required=True)
     args = parser.parse_args()
+
+    get_dict_test_scores(args.exp_dir)
