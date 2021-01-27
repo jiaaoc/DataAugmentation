@@ -219,10 +219,53 @@ def get_twenty_ng_data(config):
 
 
 def get_ag_news_data(config):
+    
+    
+    train_df = pd.read_csv(os.path.join(config.datapath, "train.csv"), header=None)
+    test_df = pd.read_csv(os.path.join(config.datapath, "test.csv"), header=None)
+
+
     if config.n_labeled_per_class == -1:
-        pass
+        train_labels = np.array([v-1 for v in train_df[0]])
+        train_text = np.array([v for v in train_df[2]])
+        del train_df
+
+        test_labels = np.array([u-1 for u in test_df[0]])
+        test_text = np.array([v for v in test_df[2]])
+        del test_df
+
+        return train_text, train_labels, test_text, test_labels, None
+
     else:
-        pass
+        train_labels = np.array([v-1 for v in train_df[0]])
+        train_text = np.array([v for v in train_df[2]])
+        del train_df
+
+        test_labels = np.array([u-1 for u in test_df[0]])
+        test_text = np.array([v for v in test_df[2]])
+        del test_df
+
+        n_labels = max(test_labels) + 1
+        np.random.seed(0)
+
+        train_idx_pool = []
+
+        for i in range(n_labels):
+            idxs = np.where(labels == i)[0]
+            np.random.shuffle(idxs)
+            train_idx_pool.extend(idxs[:1000 + 20000])
+
+
+        #train_text =train_text[train_idx_pool]
+        #train_labels = train_labels[train_idx_pool]
+
+        #idx_mapping = {}
+        
+        #for (i, idx) in enumerate(train_idx_pool):
+        #    idx_mapping[i] = idx
+
+        return train_text, train_labels, test_text, test_labels, train_idx_pool
+
 
 
 
@@ -243,11 +286,12 @@ def get_data(config):
     """
     # Load the tokenizer for bert
     tokenizer = AutoTokenizer.from_pretrained(config.pretrained_weight)
-
+    
+    train_idx_pool = None
     # Labels must be 0 indexed
     # All datasets must return lists of lists
     if "ag_news" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_ag_news_data()
+        train_txt, train_labels, test_txt, test_lbl, train_idx_pool = get_ag_news_data()
     elif "20_ng" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_twenty_ng_data(config)
     elif "yahoo" in config.dataset.lower():
@@ -276,7 +320,7 @@ def get_data(config):
     n_labels = max(test_lbl) + 1
 
     train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
-         train_labels, config.n_labeled_per_class, config.unlabeled_per_class, n_labels, config.datapath, config.seed)
+         train_labels, config.n_labeled_per_class, config.unlabeled_per_class, n_labels, config.datapath, config.seed, train_idx_pool)
 
 
     augmentor = None
@@ -299,7 +343,7 @@ def get_data(config):
     return train_labeled_dataset, train_unlabeled_dataset, val_dataset, test_dataset, n_labels
 
 
-def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, dataset_path, seed=0):
+def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, dataset_path, seed=0, train_idx_pool = None):
     """Split the original training set into labeled training set, unlabeled training set, development set
 
     Arguments:
@@ -323,24 +367,24 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
         train_unlabeled_idxs = pickle.load(open(os.path.join(data_seed_path, "train_unlbl_idx.pkl"), 'rb'))
         val_idxs = pickle.load(open(os.path.join(data_seed_path, "val_idx.pkl"), 'rb'))
     else:
-        labels = np.array(labels)
-        train_labeled_idxs = []
-        train_unlabeled_idxs = []
+        if train_idx_pool is not None:
+            labels = np.array(labels)
+            
+            train_labeled_idxs = []
+            train_unlabeled_idxs = []
 
-        num_data = len(labels)
+            num_data = len(train_idx_pool)
 
-        num_val = min(int(0.25 * num_data), 800)
+            num_val = min(int(0.2 * num_data), 1000)
 
-        np.random.seed(seed)
-        rand_perm = np.arange(num_data)
-        np.random.shuffle(rand_perm)
+            np.random.seed(seed)
+            
+            
+            rand_perm = train_idx_pool.copy()
+            np.random.shuffle(rand_perm)
 
-        val_idxs = rand_perm[-num_val:]
+            val_idxs = rand_perm[-num_val:]
 
-        if n_labeled_per_class == -1:
-            train_labeled_idxs = rand_perm[:-num_val].tolist()
-            train_unlabeled_idxs = [0] # prevent crash
-        else:
             rand_perm_labels = labels[rand_perm]
 
             for i in range(len(rand_perm_labels) - num_val):
@@ -359,6 +403,43 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
             pickle.dump(train_labeled_idxs, open(os.path.join(data_seed_path, "train_lbl_idx.pkl"), 'wb+'))
             pickle.dump(train_unlabeled_idxs, open(os.path.join(data_seed_path, "train_unlbl_idx.pkl"), 'wb+'))
             pickle.dump(val_idxs, open(os.path.join(data_seed_path, "val_idx.pkl"), 'wb+'))
+        else:
+            labels = np.array(labels)
+            train_labeled_idxs = []
+            train_unlabeled_idxs = []
+
+            num_data = len(labels)
+
+            num_val = min(int(0.2 * num_data), 1000)
+
+            np.random.seed(seed)
+            rand_perm = np.arange(num_data)
+            np.random.shuffle(rand_perm)
+
+            val_idxs = rand_perm[-num_val:]
+
+            if n_labeled_per_class == -1:
+                train_labeled_idxs = rand_perm[:-num_val].tolist()
+                train_unlabeled_idxs = [0] # prevent crash
+            else:
+                rand_perm_labels = labels[rand_perm]
+
+                for i in range(len(rand_perm_labels) - num_val):
+                    temp_lbl_idxs = np.where(rand_perm_labels == i)[0]
+                    lbl_idxs = rand_perm[temp_lbl_idxs]
+                    train_labeled_idxs.extend(lbl_idxs[:n_labeled_per_class])
+                    train_unlabeled_idxs.extend(lbl_idxs[100:min(100+unlabeled_per_class, len(lbl_idxs))])
+
+                np.random.shuffle(train_labeled_idxs)
+                np.random.shuffle(train_unlabeled_idxs)
+                np.random.shuffle(val_idxs)
+
+                if not os.path.exists(data_seed_path):
+                    os.makedirs(data_seed_path)
+
+                pickle.dump(train_labeled_idxs, open(os.path.join(data_seed_path, "train_lbl_idx.pkl"), 'wb+'))
+                pickle.dump(train_unlabeled_idxs, open(os.path.join(data_seed_path, "train_unlbl_idx.pkl"), 'wb+'))
+                pickle.dump(val_idxs, open(os.path.join(data_seed_path, "val_idx.pkl"), 'wb+'))
 
     return train_labeled_idxs, train_unlabeled_idxs, val_idxs
 
