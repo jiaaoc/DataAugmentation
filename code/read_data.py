@@ -374,7 +374,7 @@ def get_sst2_data(config):
 
     del test_df
 
-    return train_txt, train_labels, test_text, test_labels
+    return train_text, train_labels, test_text, test_labels
 
 
 def get_data(config):
