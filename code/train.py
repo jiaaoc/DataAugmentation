@@ -97,6 +97,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
     model.train()
     ce_loss = nn.CrossEntropyLoss(reduction='none')
 
+    kl_loss = nn.KLDivLoss(reduction='none')
 
     for batch_idx in range(config.val_iteration):
         try:
