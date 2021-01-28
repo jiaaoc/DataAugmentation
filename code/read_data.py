@@ -205,6 +205,11 @@ def get_mnli_data(config):
     dict_lbl_2_idx = {"contradiction":0, "neutral": 1, "entailment": 2}
 
     def read_tsv(filepath):
+        if "dev" in filepath:
+            lbl_idx = 15
+        else:
+            lbl_idx = 11
+
         list_lbl = []
         list_txt = []
 
@@ -217,7 +222,7 @@ def get_mnli_data(config):
 
                 sentence_1 = tab_split[8]
                 sentence_2 = tab_split[9]
-                lbl = int(dict_lbl_2_idx[tab_split[11]])
+                lbl = int(dict_lbl_2_idx[tab_split[lbl_idx]])
 
                 list_txt.append([sentence_1, sentence_2])
                 list_lbl.append(lbl)
