@@ -86,7 +86,7 @@ class Augmentor:
                 
                 de.update(de_u)
                 self.transform.append(de)
-            if 'yahoo_answers' in path:
+            elif 'yahoo_answers' in path:
                 with open(path + '/yahoo_answers_de_labeled.pkl', 'rb') as f:
                     de = pickle.load(f)
                     
@@ -516,15 +516,15 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
 
             np.random.seed(seed)
             
-            
             rand_perm = np.array(train_idx_pool.copy())
             np.random.shuffle(rand_perm)
 
             val_idxs = rand_perm[-num_val:]
 
-            rand_perm_labels = labels[rand_perm]
+            rand_perm_labels = labels[rand_perm][:-num_val]
 
-            for i in range(len(rand_perm_labels) - num_val):
+            #for i in range(len(rand_perm_labels) - num_val):
+            for i in range(n_labels):
                 temp_lbl_idxs = np.where(rand_perm_labels == i)[0]
                 lbl_idxs = rand_perm[temp_lbl_idxs]
                 train_labeled_idxs.extend(lbl_idxs[:n_labeled_per_class])
@@ -559,9 +559,11 @@ def train_val_split(labels, n_labeled_per_class, unlabeled_per_class, n_labels, 
                 train_labeled_idxs = rand_perm[:-num_val].tolist()
                 train_unlabeled_idxs = [0] # prevent crash
             else:
-                rand_perm_labels = labels[rand_perm]
+                #rand_perm_labels = labels[rand_perm]
 
-                for i in range(len(rand_perm_labels) - num_val):
+                rand_perm_labels = labels[rand_perm][:-num_val]
+
+                for i in range(n_labels):
                     temp_lbl_idxs = np.where(rand_perm_labels == i)[0]
                     lbl_idxs = rand_perm[temp_lbl_idxs]
                     train_labeled_idxs.extend(lbl_idxs[:n_labeled_per_class])
@@ -706,6 +708,10 @@ class loader_unlabeled(Dataset):
         else:
             ori = ori[0]
             augmented_data, _, _ = self.augmentor(ori, idx=self.ids[idx])
+
+
+            #print("aug:", augmented_data )
+            #print("ori:", ori )
 
             encode_result_u = self.get_tokenized(augmented_data)[0]
             encode_result_ori = self.get_tokenized(ori)
