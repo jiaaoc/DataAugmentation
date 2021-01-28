@@ -12,7 +12,7 @@
     "batch_size_u": 12,
     "test_batch_size": 128,
     "epochs": 25,
-    "val_iteration": 800,
+    "val_iteration": 1000,
     "grad_accumulation_factor": 4,
     "lr": 2e-5,
     "transform_type": "RandomInsertion"
