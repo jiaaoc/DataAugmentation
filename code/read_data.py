@@ -108,7 +108,7 @@ class Augmentor:
             if ori_2 is not None:
                 augmented_data_2 = synonym_replacement(ori_2, 0.1, self.transform_times)
         elif self.transform_type == 'WordReplacementVocab':
-            augmented_data = word_flip(ori, 0.1, self.transform_times, self.set_wrds)
+            augmented_data = word_flip(ori, 0.3, self.transform_times, self.set_wrds)
             if ori_2 is not None:
                 augmented_data_2 = word_flip(ori_2, 0.1, self.transform_times, self.set_wrds)
         elif self.transform_type == 'RandomInsertion':
