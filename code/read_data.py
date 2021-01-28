@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import torch
 import os
+import random
 from torch.utils.data import Dataset
 
 from transformers import *
@@ -101,6 +102,15 @@ class Augmentor:
                     self.transform.append(de)
 
     def __call__(self, ori, ori_2=None, idx=0):
+
+        if random.random() < 0.5:
+            augmented_data = word_flip(ori, 0.3, self.transform_times, self.set_wrds)
+            return augmented_data
+        else:
+            augmented_data = random_delete(ori, 0.1, self.transform_times)
+            return augmented_data
+
+
         augmented_data = []
         augmented_data_2 = None
         if self.transform_type == 'SynonymReplacement':
