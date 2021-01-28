@@ -4,7 +4,28 @@ export PYTHON_EXEC=python
 
 
 
+for i in 0 1 42
+do
+    
 
+    CUDA_VISIBLE_DEVICES=2 python -m code.normal_train -c ./config/yahoo_answers/10_lbl_0_unlbl.json -k transform_type=BackTranslation seed=$i
+
+
+done
+
+
+
+
+for i in 0 1 42
+do
+    
+
+    CUDA_VISIBLE_DEVICES=2 python -m code.normal_train -c ./config/yahoo_answers/100_lbl_0_unlbl.json -k transform_type=BackTranslation seed=$i
+
+  
+done
+
+:<<!
 for i in 0 1 42
 do
     CUDA_VISIBLE_DEVICES=2 python -m code.normal_train -c ./config/yahoo_answers/10_lbl_0_unlbl.json -k transform_type=None seed=$i
@@ -49,7 +70,7 @@ do
 done
 
 
-
+!
 
 
 

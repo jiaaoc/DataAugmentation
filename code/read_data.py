@@ -86,6 +86,15 @@ class Augmentor:
                 
                 de.update(de_u)
                 self.transform.append(de)
+            if 'yahoo_answers' in path:
+                with open(path + '/yahoo_answers_de_labeled.pkl', 'rb') as f:
+                    de = pickle.load(f)
+                    
+                with open(path + '/yahoo_answers_de_unlabeled.pkl', 'rb') as f:
+                    de_u = pickle.load(f)
+                
+                de.update(de_u)
+                self.transform.append(de)
             else:
                 with open(path + 'de_1.pkl', 'rb') as f:
                     de = pickle.load(f)
