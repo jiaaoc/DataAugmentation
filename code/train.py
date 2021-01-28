@@ -136,11 +136,13 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         all_inputs = torch.cat([inputs_x, inputs_u], dim=0) # [bs+bs_u]
 
+        #sharp_outputs_ori_prob = torch.cat([sharp_outputs_ori_prob, sharp_outputs_ori_prob], dim = 0)
+
         logits = model(all_inputs)
 
-        cur_step = (epoch * config.val_iteration) + batch_idx
-        tsa_thresh = get_tsa_thresh("linear_schedule", cur_step, config.epochs * config.val_iteration, 1/ n_labels, 1, config.device)
-
+        cur_step = epoch + batch_idx / config.val_iteration
+        tsa_thresh = get_tsa_thresh("linear_schedule", cur_step, config.epochs, 1/ n_labels, 1, config.device)
+        #tsa_thresh = 1
         outputs_x = logits[:batch_size]
         outputs_u = logits[batch_size:]
 
@@ -159,8 +161,9 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         #print("epoch {}, step {}, Lx {}, Lu {}".format(
          #       epoch, batch_idx, Lx.item(), Lu.item()))
-
-        loss = Lx + config.lambda_u * Lu
+        u_factor = np.clip(cur_step / config.epochs, 0.0, 1.0)
+        
+        loss = Lx + u_factor * config.lambda_u * Lu
         loss = loss / config.grad_accumulation_factor
         loss.backward()
 
@@ -173,6 +176,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         if batch_idx % 100 == 0:
             print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
                 epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))
+
+
 
 def validate(config, valloader, model, criterion, epoch, mode):
     model.eval()
