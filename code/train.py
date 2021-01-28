@@ -137,6 +137,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
             sharp_outputs_ori_prob = F.softmax(outputs_ori / config.sharp_temperature)
 
+            larger_than_threshold = torch.max(ori_prob, dim=-1)[0] > (2 / n_labels)
+
             #print("ori, ", sharp_outputs_ori_prob)
             #print("aug, ", F.softmax(outputs_u))
 
@@ -163,27 +165,11 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         probs_u = torch.log_softmax(outputs_u, dim=1)
 
-        
-        larger_than_threshold = torch.max(ori_prob, dim=-1)[0] > (1/ n_labels + 0.1)
-        
-        #unsup_loss_mask = unsup_loss_mask.type(torch.float32)
 
         Lu = torch.sum(F.kl_div(probs_u, sharp_outputs_ori_prob, reduction='none'), dim = -1)  # [bs, ]
 
-        #print(Lu.shape)
-
-        #print(larger_than_threshold.shape)
-
         Lu =  torch.sum(Lu * larger_than_threshold, dim=-1) / torch.max(torch.sum(larger_than_threshold, dim=-1),
                                                                            torch.tensor(1.).to(config.device).long())
-
-
-        
-        
-
-        #print("epoch {}, step {}, Lx {}, Lu {}".format(
-         #       epoch, batch_idx, Lx.item(), Lu.item()))
-        u_factor = np.clip(cur_step / config.epochs, 0.0, 1.0)
         
         loss = Lx +    config.lambda_u * Lu
         loss = loss / config.grad_accumulation_factor
