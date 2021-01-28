@@ -97,6 +97,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
     model.train()
     ce_loss = nn.CrossEntropyLoss(reduction='none')
 
+    kl_loss = nn.KLDivLoss(reduction='none')
 
     for batch_idx in range(config.val_iteration):
         try:
@@ -156,7 +157,9 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         probs_u = torch.log_softmax(outputs_u, dim=1)
 
-        Lu = F.kl_div(probs_u, sharp_outputs_ori_prob, reduction='batchmean')  # [bs, ]
+        total_kl_loss = kl_loss(probs_u, sharp_outputs_ori_prob)
+        sum_kl_loss = torch.sum(total_kl_loss, dim=1)
+        Lu = torch.mean(sum_kl_loss)  # [bs, ]
         
 
         #print("epoch {}, step {}, Lx {}, Lu {}".format(

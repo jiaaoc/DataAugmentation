@@ -103,13 +103,6 @@ class Augmentor:
 
     def __call__(self, ori, ori_2=None, idx=0):
 
-        if random.random() < 0.5:
-            augmented_data = word_flip(ori, 0.3, self.transform_times, self.set_wrds)
-            return augmented_data, None, ori
-        else:
-            augmented_data = random_delete(ori, 0.1, self.transform_times)
-            return augmented_data, None, ori
-
 
         augmented_data = []
         augmented_data_2 = None
