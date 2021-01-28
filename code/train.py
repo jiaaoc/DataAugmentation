@@ -133,11 +133,11 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             # Predict labels for unlabeled data.
             outputs_ori = model(inputs_ori)
             
-            ori_prob = F.softmax(outputs_ori)
+            # ori_prob = F.softmax(outputs_ori)
 
             sharp_outputs_ori_prob = F.softmax(outputs_ori / config.sharp_temperature)
 
-            larger_than_threshold = torch.max(ori_prob, dim=-1)[0] > (2 / n_labels)
+            larger_than_threshold = torch.max(sharp_outputs_ori_prob, dim=-1)[0] > min((2 / n_labels), (1 / n_labels) + 0.1)
 
             #print("ori, ", sharp_outputs_ori_prob)
             #print("aug, ", F.softmax(outputs_u))
