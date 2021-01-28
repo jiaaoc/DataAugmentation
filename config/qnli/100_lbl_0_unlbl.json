@@ -1,6 +1,6 @@
 {
     "dataset": "QNLI",
-    "datapath": "processed_data/QNLI",
+    "datapath": "processed_data/QNLI/",
     "pretrained_weight": "bert-base-uncased",
     "is_classification": true,
     "n_labeled_per_class": 100,

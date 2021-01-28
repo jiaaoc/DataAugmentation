@@ -15,7 +15,6 @@ class Config(object):
         self.is_classification = True
         self.seed = 0
 
-
         # SSL setup
         self.n_labeled_per_class = 10
         self.unlabeled_per_class = 0
