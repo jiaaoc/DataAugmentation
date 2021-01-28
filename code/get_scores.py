@@ -2,6 +2,7 @@ import argparse
 import os
 import json
 import numpy as np
+from scipy import stats
 
 def get_dict_test_scores(exp_dir):
 
@@ -13,8 +14,8 @@ def get_dict_test_scores(exp_dir):
         test_score_file = os.path.join(exp_dir, seed_dir_name, "test_scores_%d.json" % seed)
 
         with open(test_score_file, 'r') as f:
-            first_line = f.readline()
-            score_json = json.loads(first_line)
+            all_lines = f.readlines()
+            score_json = json.loads(all_lines[-1])
             test_acc = score_json["best_test_acc"]
             test_f1 = score_json["best_test_f1"]
 
@@ -22,15 +23,18 @@ def get_dict_test_scores(exp_dir):
             dict_seed_to_test_f1[seed] = test_f1
 
     average = np.mean(np.asarray(list(dict_seed_to_test_acc.values())))
-    std_dev = np.std(np.asarray(list(dict_seed_to_test_acc.values())))
+    std_error = stats.sem((np.asarray(list(dict_seed_to_test_acc.values()))))
+    n = len(list(dict_seed_to_test_f1.values()))
+    ci = std_error * stats.t.ppf((1 + 0.95) / 2., n - 1)
 
-    print("Average: %.3f, Std Dev: %.3f " % (average, std_dev))
+    print("Average: %.3f, Std Error: %.3f, CI: %.3f " % (average, std_error, ci))
     print(dict_seed_to_test_acc)
 
     average = np.mean(np.asarray(list(dict_seed_to_test_f1.values())))
-    std_dev = np.std(np.asarray(list(dict_seed_to_test_f1.values())))
+    std_error = stats.sem(np.asarray(list(dict_seed_to_test_f1.values())))
+    ci = std_error * stats.t.ppf((1 + 0.95) / 2., n - 1)
 
-    print("Average: %.3f, Std Dev: %.3f " % (average, std_dev))
+    print("Average: %.3f, Std Dev: %.3f, CI: %.3f " % (average, std_error, ci))
     print(dict_seed_to_test_f1)
 
 

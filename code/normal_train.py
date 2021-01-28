@@ -68,7 +68,6 @@ def main(config):
             best_acc = val_acc
             torch.save(model.state_dict(), config.best_model_file)
 
-
     model.load_state_dict(torch.load(config.best_model_file))
     test_loss, test_acc, test_f1 = validate(
         config, test_loader, model, criterion, epoch, mode='Test Stats ')

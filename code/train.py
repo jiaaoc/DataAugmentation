@@ -25,7 +25,7 @@ from code.read_data import *
 
 from code.util import ParseKwargs
 from code.Config import Config
-from code.util import set_seeds
+from code.util import set_seeds, get_linear_schedule_with_warmup
 
 
 
@@ -56,13 +56,19 @@ def main(config):
 
     optimizer = AdamW(model.parameters(), lr=config.lr)
 
+    num_batches = config.epochs * config.val_iteration / config.grad_accumulation_factor
+    num_warmup_steps = 0.06 * num_batches
+
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps, num_batches)
+
+
     criterion = nn.CrossEntropyLoss()
 
     f = open(config.dev_score_file, 'w')
 
     # Start training
     for epoch in range(config.epochs):
-        train(labeled_trainloader, unlabeled_trainloader, model, optimizer,
+        train(labeled_trainloader, unlabeled_trainloader, model, optimizer, scheduler,
             epoch, n_labels, config)
 
         val_loss, val_acc, val_f1 = validate(
@@ -85,7 +91,7 @@ def main(config):
         f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
 
 
-def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n_labels, config):
+def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, scheduler, epoch, n_labels, config):
     labeled_train_iter = iter(labeled_trainloader)
     unlabeled_train_iter = iter(unlabeled_trainloader)
     model.train()
@@ -163,6 +169,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, epoch, n
 
         if (batch_idx+1) % config.grad_accumulation_factor == 0:
             optimizer.step()
+            scheduler.step()
             optimizer.zero_grad()
 
 
