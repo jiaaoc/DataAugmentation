@@ -109,6 +109,30 @@ def qqp_backtranslation():
     with open("processed_data/QQP/" + 'de_1.pkl', 'wb') as f:
         pickle.dump(dict_txt, f)
 
+def mnli_backtranslation():
+
+    def read_tsv(filepath):
+        dict_txt = {}
+        ctr = 0
+        with open(filepath, 'r') as f:
+            # Read header path
+            f.readline()
+
+            for idx, line in enumerate(f.readlines()):
+                tab_split = line.strip('\n').split('\t')
+
+                sentence_1 = tab_split[1]
+                sentence_2 = tab_split[7]
+
+                dict_txt[ctr] = [sentence_1, sentence_2]
+                ctr += 1
+
+        return dict_txt
+
+    dict_txt = read_tsv(os.path.join("glue_bt_data", "mnli", "train_bt.tsv"))
+
+    with open("processed_data/MNLI/" + 'de_1.pkl', 'wb') as f:
+        pickle.dump(dict_txt, f)
 
 
 def glue_backtranslation(dataset):
@@ -118,6 +142,8 @@ def glue_backtranslation(dataset):
         return qnli_backtranslation()
     elif dataset == "qqp":
         return qqp_backtranslation()
+    elif dataset == "mnli":
+        return mnli_backtranslation()
 
 
 if __name__ == "__main__":
