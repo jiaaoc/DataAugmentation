@@ -151,6 +151,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
         cur_step = epoch + batch_idx / config.val_iteration
         tsa_thresh = get_tsa_thresh("linear_schedule", cur_step, config.epochs, 1/ n_labels, 1, config.device)
+
         #tsa_thresh = 1
         outputs_x = logits[:batch_size]
         outputs_u = logits[batch_size:]
@@ -171,7 +172,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         Lu =  torch.sum(Lu * larger_than_threshold, dim=-1) / torch.max(torch.sum(larger_than_threshold, dim=-1),
                                                                            torch.tensor(1.).to(config.device).long())
         
-        loss = Lx +    config.lambda_u * Lu
+        loss = Lx + config.lambda_u * Lu
         loss = loss / config.grad_accumulation_factor
         loss.backward()
 
