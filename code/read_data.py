@@ -4,6 +4,7 @@ import torch
 import os
 import random
 from torch.utils.data import Dataset
+import csv
 
 from transformers import *
 # from pytorch_transformers import *
@@ -51,7 +52,7 @@ class Augmentor:
             elif "rte" in config.dataset.lower():
                 train_txt, _, _, _ = get_rte_data(config)
             elif "cola" in config.dataset.lower():
-                train_txt, _, _, _ = get_cola_data()
+                train_txt, _, _, _ = get_cola_data(config)
             else:
                 raise ValueError("Invalid Dataset Name %s" % config.dataset)
 
@@ -96,6 +97,16 @@ class Augmentor:
                 
                 de.update(de_u)
                 self.transform.append(de)
+            elif 'sst-2' in path.lower():
+                with open(path + '/de_1.pkl', 'rb') as f:
+                    de = pickle.load(f)
+                    self.transform.append(de)
+
+            elif 'cola' in path.lower():
+                with open(path + '/de_1.pkl', 'rb') as f:
+                    de = pickle.load(f)
+                    self.transform.append(de)
+
             else:
                 with open(path + 'de_1.pkl', 'rb') as f:
                     de = pickle.load(f)
@@ -409,6 +420,28 @@ def get_sst2_data(config):
     return train_text, train_labels, test_text, test_labels
 
 
+def get_cola_data(config):
+
+    with open(os.path.join(config.datapath, "train.tsv"), "r", encoding="utf-8-sig") as f:
+        train_df=list(csv.reader(f, delimiter="\t", quotechar=None))[1:]
+
+
+    with open(os.path.join(config.datapath, "dev.tsv"), "r", encoding="utf-8-sig") as f:
+        test_df=list(csv.reader(f, delimiter="\t", quotechar=None))[1:]
+
+    train_labels = np.array([int(v[1]) for v in train_df])
+    train_text = np.array([[v[3]] for v in train_df])
+    
+    del train_df
+    
+    test_labels = np.array([int(v[1]) for v in test_df])
+    test_text = np.array([[v[3]] for v in test_df])
+
+    del test_df
+
+    return train_text, train_labels, test_text, test_labels
+
+
 def get_data(config):
 
     """Read data, split the dataset, and build dataset for dataloaders.
@@ -445,7 +478,7 @@ def get_data(config):
     elif "sst-2" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_sst2_data(config)
     elif "mrpc" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_mprc_data()
+        train_txt, train_labels, test_txt, test_lbl = get_mprc_data(config)
     elif "stsb" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_stsb_data()
     elif "qnli" in config.dataset.lower():
@@ -453,7 +486,7 @@ def get_data(config):
     elif "rte" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_rte_data(config)
     elif "cola" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_cola_data()
+        train_txt, train_labels, test_txt, test_lbl = get_cola_data(config)
     else:
         raise ValueError("Invalid Dataset Name %s" % config.dataset)
 
