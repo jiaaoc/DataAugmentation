@@ -11,7 +11,7 @@ class CLS_model(nn.Module):
         self.config = config
 
         if "mnli" in config.pretrained_weight.lower():
-            self.model = AutoModel.from_pretrained(config.pretrained_weight, num_labels=num_labels)
+            self.model = AutoModel.from_pretrained(config.pretrained_weight)
             self.linear = nn.Linear(768, num_labels)
 
         else:
