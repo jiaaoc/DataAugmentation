@@ -7,7 +7,7 @@
     "n_labeled_per_class": 10,
     "unlabeled_per_class": 5000,
     "sharp_temperature": 1,
-    "lambda_u": 1,
+    "lambda_u": 0.5,
     "batch_size": 4,
     "batch_size_u": 12,
     "test_batch_size": 128,

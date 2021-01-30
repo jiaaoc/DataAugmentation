@@ -137,7 +137,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
             sharp_outputs_ori_prob = F.softmax(outputs_ori / config.sharp_temperature)
 
-            larger_than_threshold = torch.max(sharp_outputs_ori_prob, dim=-1)[0] > min((2 / n_labels), (1 / n_labels) + 0.1)
+            larger_than_threshold = torch.max(sharp_outputs_ori_prob, dim=-1)[0] > min((2 / n_labels), (1 / n_labels))
 
             #print("ori, ", sharp_outputs_ori_prob)
             #print("aug, ", F.softmax(outputs_u))
@@ -172,8 +172,10 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         Lu =  torch.sum(Lu * larger_than_threshold, dim=-1) / torch.max(torch.sum(larger_than_threshold, dim=-1),
                                                                            torch.tensor(1.).to(config.device).long())
         
-        loss = Lx + config.lambda_u * Lu
+        loss = Lx +    config.lambda_u * Lu
+        
         loss = loss / config.grad_accumulation_factor
+        
         loss.backward()
 
         if (batch_idx+1) % config.grad_accumulation_factor == 0:
@@ -219,6 +221,17 @@ def validate(config, valloader, model, criterion, epoch, mode):
                             np.array(targets.cpu())).sum()
                 loss_total += loss.item() * inputs.shape[0]
                 total_sample += inputs.shape[0]
+            elif "cola" in config.dataset.lower():
+                _, predicted = torch.max(outputs.data, 1)
+
+
+                pred_lbl.extend(np.array(predicted.cpu()).tolist())
+                true_lbl.extend(np.array(targets.cpu()).tolist())
+
+                correct += (np.array(predicted.cpu()) ==
+                            np.array(targets.cpu())).sum()
+                loss_total += loss.item() * inputs.shape[0]
+                total_sample += inputs.shape[0]
 
 
         if config.is_classification:
@@ -236,7 +249,9 @@ def validate(config, valloader, model, criterion, epoch, mode):
 
                 return loss_total, pearson_corr, 0
             else:
-                matthews_cor = matthews_corrcoef(true_lbl, pred_lbl)[0]
+                #print('tr', true_lbl)
+                #print('pr', pred_lbl)
+                matthews_cor = matthews_corrcoef(true_lbl, pred_lbl)
                 return loss_total, matthews_cor, 0
 
 def get_tsa_thresh(schedule, global_step, num_train_steps, start, end, device):
