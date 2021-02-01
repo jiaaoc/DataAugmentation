@@ -146,20 +146,35 @@ class Augmentor:
                     augmented_data[0].append('None')
             else:
                 for i in range(0, self.transform_times):
-                    augmented_data.append(self.transform[i][idx][0][0])
+                    if idx not in self.transform[i]:
+                        augmented_data.append(ori)
+                    else:
+                        augmented_data.append(self.transform[i][idx][0][0])
                 for i in range(0, self.transform_times):
-                    augmented_data_2.append(self.transform[i][idx][1][0])
+                    if idx not in self.transform[i]:
+                        augmented_data.append(ori)
+                    else:
+                        augmented_data_2.append(self.transform[i][idx][1][0])
 
         elif self.transform_type == 'BackTranslation':
             augmented_data_2 = []
             if ori_2 is None:
                 for i in range(0, self.transform_times):
-                    augmented_data.append(self.transform[i][idx])
+                    if idx not in self.transform[i]:
+                        augmented_data.append(ori)
+                    else:
+                        augmented_data.append(self.transform[i][idx])
             else:
                 for i in range(0, self.transform_times):
-                    augmented_data.append(self.transform[i][idx][0][0])
+                    if idx not in self.transform[i]:
+                        augmented_data.append(ori)
+                    else:
+                        augmented_data.append(self.transform[i][idx][0][0])
                 for i in range(0, self.transform_times):
-                    augmented_data_2.append(self.transform[i][idx][1][0])
+                    if idx not in self.transform[i]:
+                        augmented_data.append(ori)
+                    else:
+                        augmented_data_2.append(self.transform[i][idx][1][0])
         elif self.transform_type == "Cutoff":
             augmented_data = span_cutoff(ori, 0.1, self.transform_times)
             if ori_2 is not None:
