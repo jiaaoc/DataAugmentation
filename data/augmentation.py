@@ -157,7 +157,7 @@ def random_flip(text, alpha, num_aug):
         # Keep sampling indices of words to flip until unique one comes up (at most 10 times)
         cntr = 0
 
-        flip_wrd_idx = random.sample(range(num_wrds), k=num_wrd_flip)
+        flip_wrd_idx = random.sample(range(num_wrds), k=min(num_wrd_flip, range(num_wrds)))
         while convert_list_to_str(flip_wrd_idx) in set_flip_wrd_idx:
             flip_wrd_idx = random.sample(range(num_wrds), k=num_wrd_flip)
             cntr += 1
@@ -307,7 +307,7 @@ def word_flip(text, alpha, num_aug, set_words):
         # Keep sampling indices of words to flip until unique one comes up (at most 10 times)
         cntr = 0
 
-        flip_wrd_idx = random.sample(range(num_wrds), k=num_wrd_flip)
+        flip_wrd_idx = random.sample(range(num_wrds), k=min(num_wrd_flip, range(num_wrds)))
         while convert_list_to_str(flip_wrd_idx) in set_flip_wrd_idx:
             flip_wrd_idx = random.sample(range(num_wrds), k=num_wrd_flip)
             cntr += 1
