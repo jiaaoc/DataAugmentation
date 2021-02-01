@@ -146,7 +146,7 @@ class Augmentor:
                     augmented_data[0].append('None')
             else:
                 for i in range(0, self.transform_times):
-                    if idx not in self.transform[i]:
+                    if idx not in self.transform[i] or len(self.transform[i][idx]) < 1 or len(self.transform[i][idx][0]) < 1:
                         augmented_data.append(ori)
                     else:
                         augmented_data.append(self.transform[i][idx][0][0])
