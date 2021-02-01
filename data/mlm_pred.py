@@ -103,7 +103,7 @@ def all_mlm_pred(data_path, device):
     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
     stop_words = stopwords.words('english')
 
-    with open(data_path + '/train_data.pkl', 'rb') as f:
+    with open(data_path + '/train_unlabeled_data.pkl', 'rb') as f:
         train_unlabeled_data = pickle.load(f)
 
     cnt = 0
