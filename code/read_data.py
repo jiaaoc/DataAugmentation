@@ -44,7 +44,7 @@ class Augmentor:
             elif "sst-2" in config.dataset.lower():
                 train_txt, _, _, _ = get_sst2_data(config)
             elif "mrpc" in config.dataset.lower():
-                train_txt, _, _, _ = get_mprc_data()
+                train_txt, _, _, _ = get_mrpc_data(config)
             elif "stsb" in config.dataset.lower():
                 train_txt, _, _, _ = get_stsb_data()
             elif "qnli" in config.dataset.lower():
@@ -247,6 +247,35 @@ def get_mnli_data(config):
     test_txt, test_lbl = read_tsv(os.path.join(config.datapath, "dev_matched.tsv"))
 
     return np.asarray(train_txt), np.asarray(train_lbl), np.asarray(test_txt), np.asarray(test_lbl)
+
+
+def get_mrpc_data(config):
+    with open(os.path.join(config.datapath, "train.tsv"), "r", encoding="utf-8-sig") as f:
+        train_df=list(csv.reader(f, delimiter="\t", quotechar=None))[1:]
+
+
+    with open(os.path.join(config.datapath, "dev.tsv"), "r", encoding="utf-8-sig") as f:
+        test_df=list(csv.reader(f, delimiter="\t", quotechar=None))[1:]
+
+    train_text = []
+    train_labels = []
+
+    for i in range(0, len(train_df)):
+        train_text.append([train_df[i][3], train_df[i][4]])
+        train_labels.append(int(train_df[i][0]))
+    
+    del train_df
+    
+    test_text = []
+    test_labels = []
+
+    for i in range(0, len(test_df)):
+        test_text.append([test_df[i][3], test_df[i][4]])
+        test_labels.append(int(test_df[i][0]))
+
+    return np.array(train_text), np.array(train_labels), np.array(test_text), np.array(test_labels)
+
+    
 
 
 
@@ -478,7 +507,7 @@ def get_data(config):
     elif "sst-2" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_sst2_data(config)
     elif "mrpc" in config.dataset.lower():
-        train_txt, train_labels, test_txt, test_lbl = get_mprc_data(config)
+        train_txt, train_labels, test_txt, test_lbl = get_mrpc_data(config)
     elif "stsb" in config.dataset.lower():
         train_txt, train_labels, test_txt, test_lbl = get_stsb_data()
     elif "qnli" in config.dataset.lower():

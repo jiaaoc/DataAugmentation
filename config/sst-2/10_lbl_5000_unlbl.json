@@ -1,7 +1,7 @@
 {
     "model": "BertTextClassification",
-    "dataset": "cola",
-    "datapath": "processed_data/CoLA",
+    "dataset": "sst-2",
+    "datapath": "processed_data/SST-2",
     "pretrained_weight": "bert-base-uncased",
     "is_classification": true,
     "n_labeled_per_class": 10,
