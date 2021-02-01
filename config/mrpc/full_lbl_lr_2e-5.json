@@ -1,5 +1,5 @@
 {
-    "dataset": "qnli",
+    "dataset": "mrpc",
     "datapath": "processed_data/MRPC",
     "pretrained_weight": "bert-base-uncased",
     "is_classification": true,
