@@ -67,6 +67,9 @@ class Config(object):
 
         base_dir = os.path.join("exp_out", self.dataset, "%d_lbl_%d_unlbl" % (self.n_labeled_per_class, self.unlabeled_per_class), "%s" % self.transform_type)
 
+        if self.emb_aug is not None:
+            base_dir = os.path.join(base_dir, self.emb_aug)
+
         if not os.path.exists(base_dir):
             os.makedirs(base_dir)
 
