@@ -177,7 +177,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
                 adv_loss = F.kl_div(logp_hat, outputs, reduction='batchmean')
 
                 outputs = model(inputs_x) # [bs, num_classes]
-                normal_loss = ce_loss(outputs, targets_x)
+                normal_loss = torch.mean(ce_loss(outputs, targets_x))
                 loss = config.lambda_u * adv_loss + normal_loss
 
         else:
