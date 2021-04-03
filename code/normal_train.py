@@ -64,7 +64,6 @@ def main(config):
         with open(config.dev_score_file, 'a+') as f:
             f.write(json.dumps({"epoch": epoch, "val_acc": val_acc, "val_f1": val_f1}) + '\n')
 
-
         if val_acc >= best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), config.best_model_file)
