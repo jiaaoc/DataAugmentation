@@ -3,6 +3,7 @@ import os
 import random
 import math
 import json
+import contextlib
 
 
 import numpy as np
@@ -54,7 +55,7 @@ def main(config):
     f = open(config.dev_score_file, 'w')
 
     for epoch in range(config.epochs):
-        train(labeled_trainloader, model, optimizer, criterion, epoch, config)
+        train(labeled_trainloader, model, optimizer, criterion, epoch, config, n_labels)
 
         val_loss, val_acc, val_f1 = validate(config, 
             val_loader, model, criterion, epoch, mode='Valid Stats')
@@ -76,7 +77,23 @@ def main(config):
 
     print(best_acc)
 
-def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
+
+@contextlib.contextmanager
+def _disable_tracking_bn_stats(model):
+    def switch_attr(m):
+        if hasattr(m, 'track_running_stats'):
+            m.track_running_stats ^= True
+
+    model.apply(switch_attr)
+    yield
+    model.apply(switch_attr)
+
+def _l2_normalize(d):
+    d_reshaped = d.view(d.shape[0], -1, *(1 for _ in range(d.dim() - 2)))
+    d /= torch.norm(d_reshaped, dim=1, keepdim=True) + 1e-8
+    return d
+
+def train(labeled_trainloader, model, optimizer, criterion, epoch, config, n_labels):
     model.train()
 
     for batch_idx, (inputs, targets) in enumerate(labeled_trainloader):
@@ -87,8 +104,70 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config):
         inputs = inputs.reshape(-1, inputs.shape[-1])
         targets = targets.reshape(-1)
 
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
+
+        if config.emb_aug == "adv":
+            # Copied from https://github.com/lyakaap/VAT-pytorch
+
+            with torch.no_grad():
+                # outputs = F.softmax(model(inputs), dim=-1)  # [bs, num_classes]
+
+                input_emb = model.get_embedding_output(inputs)
+                outputs = F.softmax(model.get_bert_output(input_emb), dim=-1)
+
+            d = torch.rand(input_emb.shape).sub(0.5).to(input_emb.device)
+            d = _l2_normalize(d)
+
+            with _disable_tracking_bn_stats(model):
+                # calc adversarial direction
+                for _ in range(1):
+                    d.requires_grad_()
+                    pred_hat = model.get_bert_output(input_emb + 10 * d)
+                    logp_hat = F.log_softmax(pred_hat, dim=1)
+                    adv_distance = F.kl_div(logp_hat, outputs, reduction='batchmean')
+                    adv_distance.backward()
+                    d = _l2_normalize(d.grad)
+                    model.zero_grad()
+
+                # calc LDS
+                r_adv = d * 1
+                pred_hat = model.get_bert_output(input_emb + r_adv)
+                logp_hat = F.log_softmax(pred_hat, dim=1)
+                adv_loss = F.kl_div(logp_hat, outputs, reduction='batchmean')
+
+            outputs = model(inputs) # [bs, num_classes]
+            normal_loss = criterion(outputs, targets)
+            loss = config.lambda_u * adv_loss + normal_loss
+
+        elif config.emb_aug == "mixup":
+
+
+
+            idx = torch.randperm(inputs.size(0))
+            input_a, input_b = inputs, inputs[idx]
+
+            targets_emb = torch.zeros(input_a.shape[0], n_labels).scatter_(1, targets.view(-1, 1), 1)
+
+            target_a, target_b = targets_emb, targets_emb[idx]
+
+
+            input_a_emb = model.get_embedding_output(input_a)
+            input_b_emb = model.get_embedding_output(input_b)
+
+            l = np.random.beta(1, 1)
+
+            new_input = input_a_emb * l + (1-l) * input_b_emb
+            new_target = target_a * l + (1-l) * target_b
+            new_output = model.get_bert_output(new_input)
+
+            mixup_loss = F.kl_div(new_output, new_target, reduction='batchmean')
+
+            outputs = model(inputs) # [bs, num_classes]
+            normal_loss = criterion(outputs, targets)
+            loss = config.lambda_u * mixup_loss + normal_loss
+
+        else:
+            outputs = model(inputs) # [bs, num_classes]
+            loss = criterion(outputs, targets)
 
         print('epoch {}, step {}, loss {}'.format(
             epoch, batch_idx, loss.item()))

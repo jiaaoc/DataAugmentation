@@ -42,6 +42,8 @@ class Config(object):
         self.transform_type = None
         self.transform_times = 1
 
+        self.emb_aug = None
+
         if filename:
             self.__dict__.update(json.load(open(filename)))
         if kwargs:

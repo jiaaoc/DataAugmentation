@@ -4,6 +4,7 @@ import random
 import math
 import argparse
 import logging
+import contextlib
 
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import matthews_corrcoef, f1_score
@@ -91,6 +92,22 @@ def main(config):
         f.write(json.dumps({"epoch": epoch, "best_test_acc": test_acc, "best_test_f1": test_f1}) + '\n')
 
 
+@contextlib.contextmanager
+def _disable_tracking_bn_stats(model):
+    def switch_attr(m):
+        if hasattr(m, 'track_running_stats'):
+            m.track_running_stats ^= True
+
+    model.apply(switch_attr)
+    yield
+    model.apply(switch_attr)
+
+def _l2_normalize(d):
+    d_reshaped = d.view(d.shape[0], -1, *(1 for _ in range(d.dim() - 2)))
+    d /= torch.norm(d_reshaped, dim=1, keepdim=True) + 1e-8
+    return d
+
+
 def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, scheduler, epoch, n_labels, config):
     labeled_train_iter = iter(labeled_trainloader)
     unlabeled_train_iter = iter(unlabeled_trainloader)
@@ -129,52 +146,78 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         inputs_u = inputs_u.to(config.device)
         inputs_ori = inputs_ori.to(config.device)
 
-        with torch.no_grad():
-            # Predict labels for unlabeled data.
-            outputs_ori = model(inputs_ori)
-            
-            # ori_prob = F.softmax(outputs_ori)
 
-            sharp_outputs_ori_prob = F.softmax(outputs_ori / config.sharp_temperature)
+        if config.emb_aug == "adv":
+            real_input = torch.cat([inputs_x, inputs_ori], dim=0)
 
-            larger_than_threshold = torch.max(sharp_outputs_ori_prob, dim=-1)[0] > min((2 / n_labels), (1 / n_labels))
+            with torch.no_grad():
+                # outputs = F.softmax(model(inputs), dim=-1)  # [bs, num_classes]
 
-            #print("ori, ", sharp_outputs_ori_prob)
-            #print("aug, ", F.softmax(outputs_u))
+                input_emb = model.get_embedding_output(real_input)
+                outputs = F.softmax(model.get_bert_output(input_emb), dim=-1)
 
-            
-        all_inputs = torch.cat([inputs_x, inputs_u], dim=0) # [bs+bs_u]
+            d = torch.rand(input_emb.shape).sub(0.5).to(input_emb.device)
+            d = _l2_normalize(d)
 
-        #sharp_outputs_ori_prob = torch.cat([sharp_outputs_ori_prob, sharp_outputs_ori_prob], dim = 0)
+            with _disable_tracking_bn_stats(model):
+                # calc adversarial direction
+                for _ in range(1):
+                    d.requires_grad_()
+                    pred_hat = model.get_bert_output(input_emb + 10 * d)
+                    logp_hat = F.log_softmax(pred_hat, dim=1)
+                    adv_distance = F.kl_div(logp_hat, outputs, reduction='batchmean')
+                    adv_distance.backward()
+                    d = _l2_normalize(d.grad)
+                    model.zero_grad()
 
-        logits = model(all_inputs)
+                # calc LDS
+                r_adv = d * 1
+                pred_hat = model.get_bert_output(input_emb + r_adv)
+                logp_hat = F.log_softmax(pred_hat, dim=1)
+                adv_loss = F.kl_div(logp_hat, outputs, reduction='batchmean')
 
-        cur_step = epoch + batch_idx / config.val_iteration
-        tsa_thresh = get_tsa_thresh("linear_schedule", cur_step, config.epochs, 1/ n_labels, 1, config.device)
+                outputs = model(inputs_x) # [bs, num_classes]
+                normal_loss = ce_loss(outputs, targets_x)
+                loss = config.lambda_u * adv_loss + normal_loss
 
-        #tsa_thresh = 1
-        outputs_x = logits[:batch_size]
-        outputs_u = logits[batch_size:]
+        else:
+            with torch.no_grad():
+                # Predict labels for unlabeled data.
+                outputs_ori = model(inputs_ori)
 
-        sup_loss = ce_loss(outputs_x, targets_x)
-        # sup_loss = torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1)  # [bs, ]
-        
-        less_than_threshold = torch.exp(-sup_loss) < tsa_thresh  # prob = exp(log_prob), prob > tsa_threshold
+                sharp_outputs_ori_prob = F.softmax(outputs_ori / config.sharp_temperature)
 
-        Lx = torch.sum(sup_loss * less_than_threshold, dim=-1) / torch.max(torch.sum(less_than_threshold, dim=-1),
-                                                                           torch.tensor(1.).to(config.device).long())
+                larger_than_threshold = torch.max(sharp_outputs_ori_prob, dim=-1)[0] > min((2 / n_labels), (1 / n_labels))
 
-        probs_u = torch.log_softmax(outputs_u, dim=1)
+            all_inputs = torch.cat([inputs_x, inputs_u], dim=0) # [bs+bs_u]
 
+            logits = model(all_inputs)
 
-        Lu = torch.sum(F.kl_div(probs_u, sharp_outputs_ori_prob, reduction='none'), dim = -1)  # [bs, ]
+            cur_step = epoch + batch_idx / config.val_iteration
+            tsa_thresh = get_tsa_thresh("linear_schedule", cur_step, config.epochs, 1/ n_labels, 1, config.device)
 
-        Lu =  torch.sum(Lu * larger_than_threshold, dim=-1) / torch.max(torch.sum(larger_than_threshold, dim=-1),
-                                                                           torch.tensor(1.).to(config.device).long())
-        
-        loss = Lx +    config.lambda_u * Lu
-        
-        loss = loss / config.grad_accumulation_factor
+            #tsa_thresh = 1
+            outputs_x = logits[:batch_size]
+            outputs_u = logits[batch_size:]
+
+            sup_loss = ce_loss(outputs_x, targets_x)
+            # sup_loss = torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1)  # [bs, ]
+
+            less_than_threshold = torch.exp(-sup_loss) < tsa_thresh  # prob = exp(log_prob), prob > tsa_threshold
+
+            Lx = torch.sum(sup_loss * less_than_threshold, dim=-1) / torch.max(torch.sum(less_than_threshold, dim=-1),
+                                                                               torch.tensor(1.).to(config.device).long())
+
+            probs_u = torch.log_softmax(outputs_u, dim=1)
+
+            Lu = torch.sum(F.kl_div(probs_u, sharp_outputs_ori_prob, reduction='none'), dim = -1)  # [bs, ]
+
+            Lu =  torch.sum(Lu * larger_than_threshold, dim=-1) / torch.max(torch.sum(larger_than_threshold, dim=-1),
+                                                                               torch.tensor(1.).to(config.device).long())
+
+            loss = Lx +    config.lambda_u * Lu
+
+            loss = loss / config.grad_accumulation_factor
         
         loss.backward()
 
