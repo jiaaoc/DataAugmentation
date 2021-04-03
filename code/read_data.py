@@ -26,7 +26,84 @@ class Augmentor:
 
         self.set_wrds = set()
 
-        if transform_type == 'SynonymReplacement':
+        if self.transform_type == "ensemble":
+            if "ag_news" in config.dataset.lower():
+                train_txt, _, _, _, _ = get_ag_news_data(config)
+            elif "20_ng" in config.dataset.lower():
+                train_txt, _, _, _ = get_twenty_ng_data(config)
+            elif "yahoo" in config.dataset.lower():
+                train_txt, _, _, _, _ = get_yahoo_data(config)
+            elif "pubmed" in config.dataset.lower():
+                train_txt, _, _, _ = get_pubmed_data(config)
+            elif "mnli" in config.dataset.lower():
+                train_txt, _, _, _ = get_mnli_data(config)
+            elif "qqp" in config.dataset.lower():
+                train_txt, _, _, _ = get_qqp_data(config)
+            elif "sst-2" in config.dataset.lower():
+                train_txt, _, _, _ = get_sst2_data(config)
+            elif "mrpc" in config.dataset.lower():
+                train_txt, _, _, _ = get_mrpc_data(config)
+            elif "stsb" in config.dataset.lower():
+                train_txt, _, _, _ = get_stsb_data()
+            elif "qnli" in config.dataset.lower():
+                train_txt, _, _, _ = get_qnli_data(config)
+            elif "rte" in config.dataset.lower():
+                train_txt, _, _, _ = get_rte_data(config)
+            elif "cola" in config.dataset.lower():
+                train_txt, _, _, _ = get_cola_data(config)
+            else:
+                raise ValueError("Invalid Dataset Name %s" % config.dataset)
+
+                # Here we only use the bodies and removed titles to do the classifications
+            for list_txt in train_txt:
+                for txt in list_txt:
+                    self.set_wrds.update(txt.split(' '))
+
+            self.set_wrds = list(self.set_wrds)
+
+            self.transform_bt = []
+            self.transform_lm = []
+            # Pre-processed German data
+            with open(path + 'mlm.pkl', 'rb') as f:
+                mlm = pickle.load(f)
+                self.transform_lm.append(mlm)
+
+            # Pre-processed German data
+            if 'ag_news' in path:
+                with open(path + '/ag_news_de_labeled.pkl', 'rb') as f:
+                    de = pickle.load(f)
+
+                with open(path + '/ag_news_de_unlabeled.pkl', 'rb') as f:
+                    de_u = pickle.load(f)
+
+                de.update(de_u)
+                self.transform_bt.append(de)
+            elif 'yahoo_answers' in path:
+                with open(path + '/yahoo_answers_de_labeled.pkl', 'rb') as f:
+                    de = pickle.load(f)
+
+                with open(path + '/yahoo_answers_de_unlabeled.pkl', 'rb') as f:
+                    de_u = pickle.load(f)
+
+                de.update(de_u)
+                self.transform_bt.append(de)
+            elif 'sst-2' in path.lower():
+                with open(path + '/de_1.pkl', 'rb') as f:
+                    de = pickle.load(f)
+                    self.transform_bt.append(de)
+
+            elif 'cola' in path.lower():
+                with open(path + '/de_1.pkl', 'rb') as f:
+                    de = pickle.load(f)
+                    self.transform_bt.append(de)
+
+            else:
+                with open(path + 'de_1.pkl', 'rb') as f:
+                    de = pickle.load(f)
+                    self.transform_bt.append(de)
+
+
+        elif transform_type == 'SynonymReplacement':
             pass
         elif transform_type == 'WordReplacementVocab':
             if "ag_news" in config.dataset.lower():
@@ -70,14 +147,14 @@ class Augmentor:
         elif transform_type == 'RandomSwapping':
             pass
         elif transform_type == 'WordReplacementLM':
-            self.transform = []
+            self.transform_lm = []
             # Pre-processed German data
             with open(path + 'mlm.pkl', 'rb') as f:
                 mlm = pickle.load(f)
-                self.transform.append(mlm)
+                self.transform_lm.append(mlm)
 
         elif transform_type == 'BackTranslation':
-            self.transform = []
+            self.transform_bt = []
             # Pre-processed German data
             if 'ag_news' in path:
                 with open(path + '/ag_news_de_labeled.pkl', 'rb') as f:
@@ -87,7 +164,7 @@ class Augmentor:
                     de_u = pickle.load(f)
                 
                 de.update(de_u)
-                self.transform.append(de)
+                self.transform_bt.append(de)
             elif 'yahoo_answers' in path:
                 with open(path + '/yahoo_answers_de_labeled.pkl', 'rb') as f:
                     de = pickle.load(f)
@@ -96,27 +173,41 @@ class Augmentor:
                     de_u = pickle.load(f)
                 
                 de.update(de_u)
-                self.transform.append(de)
+                self.transform_bt.append(de)
             elif 'sst-2' in path.lower():
                 with open(path + '/de_1.pkl', 'rb') as f:
                     de = pickle.load(f)
-                    self.transform.append(de)
+                    self.transform_bt.append(de)
 
             elif 'cola' in path.lower():
                 with open(path + '/de_1.pkl', 'rb') as f:
                     de = pickle.load(f)
-                    self.transform.append(de)
+                    self.transform_bt.append(de)
 
             else:
                 with open(path + 'de_1.pkl', 'rb') as f:
                     de = pickle.load(f)
-                    self.transform.append(de)
+                    self.transform_bt.append(de)
+
+
+
 
     def __call__(self, ori, ori_2=None, idx=0):
 
 
         augmented_data = []
         augmented_data_2 = None
+
+        is_ensemble = False
+
+        if self.transform_type == "ensemble":
+            sample = random.choice(['SynonymReplacement', 'WordReplacementVocab', 'RandomInsertion', 'RandomDeletion',
+                                    'RandomSwapping', 'WordReplacementLM', 'BackTranslation', ])
+            self.transform_type = sample
+            print(sample)
+            is_ensemble = True
+
+
         if self.transform_type == 'SynonymReplacement':
             augmented_data = synonym_replacement(ori, 0.1, self.transform_times)
             if ori_2 is not None:
@@ -141,44 +232,48 @@ class Augmentor:
             augmented_data_2 = []
             if ori_2 is None:
                 for i in range(0, self.transform_times):
-                    augmented_data.append(self.transform[i][idx])
+                    augmented_data.append(self.transform_lm[i][idx])
                 while len(augmented_data[0]) < 2:
                     augmented_data[0].append('None')
             else:
                 for i in range(0, self.transform_times):
-                    if idx not in self.transform[i] or len(self.transform[i][idx]) < 1 or len(self.transform[i][idx][0]) < 1:
+                    if idx not in self.transform_lm[i] or len(self.transform_lm[i][idx]) < 1 or len(self.transform_lm[i][idx][0]) < 1:
                         augmented_data.append(ori)
                     else:
-                        augmented_data.append(self.transform[i][idx][0][0])
+                        augmented_data.append(self.transform_lm[i][idx][0][0])
                 for i in range(0, self.transform_times):
-                    if idx not in self.transform[i]:
+                    if idx not in self.transform_lm[i]:
                         augmented_data.append(ori)
                     else:
-                        augmented_data_2.append(self.transform[i][idx][1][0])
+                        augmented_data_2.append(self.transform_lm[i][idx][1][0])
 
         elif self.transform_type == 'BackTranslation':
             augmented_data_2 = []
             if ori_2 is None:
                 for i in range(0, self.transform_times):
-                    if idx not in self.transform[i]:
+                    if idx not in self.transform_bt[i]:
                         augmented_data.append(ori)
                     else:
-                        augmented_data.append(self.transform[i][idx])
+                        augmented_data.append(self.transform_bt[i][idx])
             else:
                 for i in range(0, self.transform_times):
-                    if idx not in self.transform[i]:
+                    if idx not in self.transform_bt[i]:
                         augmented_data.append(ori)
                     else:
-                        augmented_data.append(self.transform[i][idx][0][0])
+                        augmented_data.append(self.transform_bt[i][idx][0][0])
                 for i in range(0, self.transform_times):
-                    if idx not in self.transform[i]:
+                    if idx not in self.transform_bt[i]:
                         augmented_data.append(ori)
                     else:
-                        augmented_data_2.append(self.transform[i][idx][1][0])
+                        augmented_data_2.append(self.transform_bt[i][idx][1][0])
         elif self.transform_type == "Cutoff":
             augmented_data = span_cutoff(ori, 0.1, self.transform_times)
             if ori_2 is not None:
                 augmented_data_2 = span_cutoff(ori_2, 0.1, self.transform_times)
+
+        if is_ensemble:
+            self.transform_type = "ensemble"
+
 
         return augmented_data, augmented_data_2, ori
 
