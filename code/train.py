@@ -228,8 +228,8 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
 
 
         if batch_idx % 100 == 0:
-            print("epoch {}, step {}, loss {}, Lx {}, Lu {}".format(
-                epoch, batch_idx, loss.item(), Lx.item(), Lu.item()))
+            print("epoch {}, step {}, loss {}".format(
+                epoch, batch_idx, loss.item()))
 
 
 
