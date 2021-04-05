@@ -144,7 +144,7 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config, n_lab
             idx = torch.randperm(inputs.size(0))
             input_a, input_b = inputs, inputs[idx]
 
-            targets_emb = torch.zeros(input_a.shape[0], n_labels).scatter_(1, targets.view(-1, 1), 1).to(targets.device)
+            targets_emb = torch.zeros(input_a.shape[0], n_labels).scatter_(torch.tensor(1).to(targets.device), targets.view(-1, 1), 1)
 
             target_a, target_b = targets_emb, targets_emb[idx]
 
