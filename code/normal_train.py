@@ -139,8 +139,6 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config, n_lab
 
         elif config.emb_aug == "mixup":
 
-
-
             idx = torch.randperm(inputs.size(0))
             input_a, input_b = inputs, inputs[idx]
 
