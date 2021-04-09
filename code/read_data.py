@@ -190,11 +190,7 @@ class Augmentor:
                     self.transform_bt.append(de)
 
 
-
-
     def __call__(self, ori, ori_2=None, idx=0):
-
-
         augmented_data = []
         augmented_data_2 = None
 
