@@ -34,6 +34,7 @@ def main(config):
     best_acc = 0
 
     train_labeled_set, train_unlabeled_set, val_set, test_set, n_labels = get_data(config)
+
     labeled_trainloader = Data.DataLoader(
         dataset=train_labeled_set, batch_size=config.batch_size, shuffle=True)
     val_loader = Data.DataLoader(

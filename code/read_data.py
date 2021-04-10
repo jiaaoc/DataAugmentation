@@ -103,6 +103,7 @@ class Augmentor:
                     self.transform_bt.append(de)
 
 
+
         elif transform_type == 'SynonymReplacement':
             pass
         elif transform_type == 'WordReplacementVocab':
@@ -154,6 +155,7 @@ class Augmentor:
                 self.transform_lm.append(mlm)
 
         elif transform_type == 'BackTranslation':
+
             self.transform_bt = []
             # Pre-processed German data
             if 'ag_news' in path:
@@ -200,9 +202,7 @@ class Augmentor:
             sample = random.choice(['SynonymReplacement', 'WordReplacementVocab', 'RandomInsertion', 'RandomDeletion',
                                     'RandomSwapping', 'WordReplacementLM', 'BackTranslation', ])
             self.transform_type = sample
-            print(sample)
             is_ensemble = True
-
 
         if self.transform_type == 'SynonymReplacement':
             augmented_data = synonym_replacement(ori, 0.1, self.transform_times)
@@ -629,7 +629,6 @@ def get_data(config):
 
     train_labeled_idxs, train_unlabeled_idxs, val_idxs = train_val_split(
          train_labels, config.n_labeled_per_class, config.unlabeled_per_class, n_labels, config.datapath, config.seed, train_idx_pool)
-
 
     augmentor = None
     if config.transform_type is not None:
