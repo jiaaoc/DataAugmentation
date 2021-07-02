@@ -17,15 +17,11 @@ from torch.utils.data import Dataset
 
 from code.CLS_model import CLS_model
 from code.read_data import *
-from code.normal_bert import ClassificationBert
 from code.train import validate
 
 from code.util import ParseKwargs
 from code.Config import Config
 from code.util import set_seeds
-
-
-
 
 
 def main(config):
@@ -43,16 +39,11 @@ def main(config):
         dataset=test_set, batch_size=config.test_batch_size, shuffle=False)
 
     model = CLS_model(config, n_labels).to(device)
-
-    # if args.n_gpu > 1:
-    #     model = nn.DataParallel(model)
     
     optimizer = AdamW(model.parameters(), lr=config.lr)
 
     criterion = nn.CrossEntropyLoss()
 
-    #with open(config.dev_score_file, 'w') as f:
-    #    pass
     f = open(config.dev_score_file, 'w')
 
     for epoch in range(config.epochs):
@@ -109,8 +100,6 @@ def train(labeled_trainloader, model, optimizer, criterion, epoch, config, n_lab
             # Copied from https://github.com/lyakaap/VAT-pytorch
 
             with torch.no_grad():
-                # outputs = F.softmax(model(inputs), dim=-1)  # [bs, num_classes]
-
                 input_emb = model.get_embedding_output(inputs)
                 outputs = F.softmax(model.get_bert_output(input_emb), dim=-1)
 

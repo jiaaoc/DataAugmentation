@@ -29,8 +29,6 @@ from code.Config import Config
 from code.util import set_seeds, get_linear_schedule_with_warmup
 
 
-
-
 def main(config):
     set_seeds(config.seed)
 
@@ -48,12 +46,7 @@ def main(config):
         dataset=test_set, batch_size=config.test_batch_size, shuffle=False)
 
 
-    #TODO: get number of labels
     model = CLS_model(config, n_labels).to(config.device)
-
-    #
-    # if config.n_gpu > 1:
-    #     model = nn.DataParallel(model)
 
     optimizer = AdamW(model.parameters(), lr=config.lr)
 
@@ -61,8 +54,6 @@ def main(config):
     num_warmup_steps = 0.06 * num_batches
 
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps, num_batches)
-
-
     criterion = nn.CrossEntropyLoss()
 
     f = open(config.dev_score_file, 'w')
@@ -83,7 +74,6 @@ def main(config):
         if val_acc >= best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), config.best_model_file)
-
 
     model.load_state_dict(torch.load(config.best_model_file))
     test_loss, test_acc, test_f1 = validate(
@@ -114,8 +104,6 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
     model.train()
     ce_loss = nn.CrossEntropyLoss(reduction='none')
 
-    kl_loss = nn.KLDivLoss(reduction='none')
-
     for batch_idx in range(config.val_iteration):
         try:
             inputs_x, targets_x = labeled_train_iter.next()
@@ -132,14 +120,7 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
         inputs_x = inputs_x.reshape(-1, config.max_seq_length)
         targets_x = targets_x.reshape(-1)
 
-        #print(inputs_x.shape, inputs_u.shape, inputs_ori.shape)
-
         batch_size = inputs_x.size(0)
-        # inputs_x = torch.tensor(inputs_x[:,0]) # [bs * (1+num_aug), max_seq_len]
-        # targets_x = torch.tensor(targets_x[:,0]) # [bs * (1+num_aug)]
-
-        # targets_x = torch.zeros(batch_size, n_labels).scatter_(
-        #     1, targets_x.view(-1, 1), 1) #[]
 
         inputs_x, targets_x = inputs_x.to(config.device), targets_x.to(config.device)
 
@@ -151,8 +132,6 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             real_input = torch.cat([inputs_x, inputs_ori], dim=0)
 
             with torch.no_grad():
-                # outputs = F.softmax(model(inputs), dim=-1)  # [bs, num_classes]
-
                 input_emb = model.get_embedding_output(real_input)
                 outputs = F.softmax(model.get_bert_output(input_emb), dim=-1)
 
@@ -196,27 +175,21 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
             cur_step = epoch + batch_idx / config.val_iteration
             tsa_thresh = get_tsa_thresh("linear_schedule", cur_step, config.epochs, 1/ n_labels, 1, config.device)
 
-            #tsa_thresh = 1
             outputs_x = logits[:batch_size]
             outputs_u = logits[batch_size:]
 
             sup_loss = ce_loss(outputs_x, targets_x)
-            # sup_loss = torch.sum(F.log_softmax(outputs_x, dim=1) * targets_x, dim=1)  # [bs, ]
-
             less_than_threshold = torch.exp(-sup_loss) < tsa_thresh  # prob = exp(log_prob), prob > tsa_threshold
 
             Lx = torch.sum(sup_loss * less_than_threshold, dim=-1) / torch.max(torch.sum(less_than_threshold, dim=-1),
                                                                                torch.tensor(1.).to(config.device).long())
-
             probs_u = torch.log_softmax(outputs_u, dim=1)
 
             Lu = torch.sum(F.kl_div(probs_u, sharp_outputs_ori_prob, reduction='none'), dim = -1)  # [bs, ]
-
             Lu =  torch.sum(Lu * larger_than_threshold, dim=-1) / torch.max(torch.sum(larger_than_threshold, dim=-1),
                                                                                torch.tensor(1.).to(config.device).long())
 
-            loss = Lx +    config.lambda_u * Lu
-
+            loss = Lx + config.lambda_u * Lu
             loss = loss / config.grad_accumulation_factor
         
         loss.backward()
@@ -232,13 +205,11 @@ def train(labeled_trainloader, unlabeled_trainloader, model, optimizer, schedule
                 epoch, batch_idx, loss.item()))
 
 
-
 def validate(config, valloader, model, criterion, epoch, mode):
     model.eval()
     with torch.no_grad():
         loss_total = 0
         total_sample = 0
-        acc_total = 0
         correct = 0
         pred_lbl = []
         true_lbl = []
@@ -250,12 +221,8 @@ def validate(config, valloader, model, criterion, epoch, mode):
             targets = targets.reshape(-1)
             loss = criterion(outputs, targets)
 
-            #pred_lbl.extend(np.array(predicted.cpu()).tolist())
-            #true_lbl.extend(np.array(targets.cpu()).tolist())
-
             if config.is_classification:
                 _, predicted = torch.max(outputs.data, 1)
-
 
                 pred_lbl.extend(np.array(predicted.cpu()).tolist())
                 true_lbl.extend(np.array(targets.cpu()).tolist())
@@ -267,7 +234,6 @@ def validate(config, valloader, model, criterion, epoch, mode):
             elif "cola" in config.dataset.lower():
                 _, predicted = torch.max(outputs.data, 1)
 
-
                 pred_lbl.extend(np.array(predicted.cpu()).tolist())
                 true_lbl.extend(np.array(targets.cpu()).tolist())
 
@@ -275,7 +241,6 @@ def validate(config, valloader, model, criterion, epoch, mode):
                             np.array(targets.cpu())).sum()
                 loss_total += loss.item() * inputs.shape[0]
                 total_sample += inputs.shape[0]
-
 
         if config.is_classification:
             f1 = f1_score(true_lbl, pred_lbl, average=None)
@@ -292,8 +257,6 @@ def validate(config, valloader, model, criterion, epoch, mode):
 
                 return loss_total, pearson_corr, 0
             else:
-                #print('tr', true_lbl)
-                #print('pr', pred_lbl)
                 matthews_cor = matthews_corrcoef(true_lbl, pred_lbl)
                 return loss_total, matthews_cor, 0
 
