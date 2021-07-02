@@ -1,14 +1,6 @@
 # An Empirical Survey of Data Augmentation for Limited Data Learning in NLP
 
 
-This repo contains codes for the following paper: 
-
-*Jiaao Chen, Derek Tam, Colin Raffel, Mohit Bansal, Diyi Yang*: 
-An Empirical Survey of Data Augmentation for Limited Data Learning in NLP
-
-If you would like to refer to it, please cite the paper mentioned above. 
-
-
 ### Code Structure
 ```
 |__ data/
@@ -31,7 +23,7 @@ Please download the dataset and put them in the data folder. You can find proces
 
 ### Pre-processing the data
 
-We first pickle the data. See `generate_pickle.py` for examples. For augmentation methods requiring external LMs, we first generate and cache those augmentations. See `back_translation.py` and `generate_pickle.py` for examples. All other augmentations are done on the fly. 
+We first pickle the data. For example `python data/generate_pickle.py -d 20_ng`, which will generate a pickle file for the train data. For augmentation methods requiring external LMs, we first generate and cache those augmentations. For example `python data/back_translation.py --data_path=processed_data/20_ng` and `python data/mlm_pred.py --data_path=processed_data/20_ng` for examples. Note that the `data_path` directory must consist of a `train_unlabeled_data.pkl` file of pickle data for the training data. All other augmentations are done on the fly. 
 
 
 ### Training models
