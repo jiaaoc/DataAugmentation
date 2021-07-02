@@ -1,75 +1,31 @@
-# Data Augmentation and Consistency Training
-
-
-
-### Requirements
-* Python 3.6 or higher
-* Pytorch >= 1.3.0
-* Pytorch_transformers (also known as transformers)
-* Pandas, Numpy, Pickle
-* Fairseq
+# An Empirical Survey of Data Augmentation for Limited Data Learning in NLP
 
 
 ### Code Structure
 ```
 |__ data/
         |__ back_translation.py --> Script for back translating the dataset
+        |__ augmentation.py --> Script for generating augmentations
+        |__ generate_pickle.py --> Pickle data 
+        |__ mlm_pred.py --> Augmenting data using MLM 
 
 
 |__code/
-        |__ transformers/ --> Codes copied from huggingface/transformers
         |__ read_data.py --> Codes for reading the dataset; forming labeled training set, unlabeled training set, development set and testing set; building dataloaders
-        |__ normal_bert.py --> Codes for BERT baseline model
-        |__ normal_train.py --> Codes for training BERT baseline model
-        |__ mixtext.py --> Codes for our proposed TMix/MixText model
-        |__ train.py --> Codes for training/testing TMix/MixText 
+        |__ normal_train.py --> Codes for training supervised models 
+        |__ train.py --> Codes for training SSL models 
+        |__ CLS_model.py --> baseline BERT model 
+        |__ Config.py --> contains values used for training 
 ```
 
 ### Downloading the data
-Please download the dataset and put them in the data folder. You can find Yahoo Answers, AG News, DB Pedia [here](https://github.com/LC-John/Yahoo-Answers-Topic-Classification-Dataset), IMDB [here](https://www.kaggle.com/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews).
+Please download the dataset and put them in the data folder. You can find processed 20_NG data [here](https://drive.google.com/file/d/1hBbtkLRrHo5b_5APEKSDUD9az6YJ2yhM/view?usp=sharing).
 
 ### Pre-processing the data
 
-
-For Yahoo Answer, We concatenate the question title, question content and best answer together to form the text to be classified. The pre-processed Yahoo Answer dataset can be downloaded [here](https://drive.google.com/file/d/1IoX9dp_RUHwIVA2_kJgHCWBOLHsV9V7A/view?usp=sharing). 
-
-Note that for AG News and DB Pedia, we only utilize the content (without titles) to do the classifications, and for IMDB we do not perform any pre-processing.
-
-We utilize [Fairseq](https://github.com/pytorch/fairseq) to perform back translation on the training dataset. Please refer to `./data/yahoo_answers_csv/back_translate.ipynb` for details.
-
-Here, we have put two examples of back translated data, `de_1.pkl and ru_1.pkl`, in `./data/yahoo_answers_csv/` as well. You can directly use them for Yahoo Answers or generate your own back translated data followed the `./data/yahoo_answers_csv/back_translate.ipynb`.
-
+We first pickle the data. See `generate_pickle.py` for examples. For augmentation methods requiring external LMs, we first generate and cache those augmentations. See `back_translation.py` and `generate_pickle.py` for examples. All other augmentations are done on the fly. 
 
 
 ### Training models
-These section contains instructions for training models on Yahoo Answers using 10 labeled data per class for training.
-
-#### Training BERT baseline model
-Please run `./code/normal_train.py` to train the BERT baseline model (only use labeled training data):
-```
-python ./code/normal_train.py --gpu 0,1 --n-labeled 10 --data-path ./data/yahoo_answers_csv/ \
---batch-size 8 --epochs 20 
-```
-
-#### Training TMix model
-Please run `./code/train.py` to train the TMix model (only use labeled training data):
-```
-python ./code/train.py --gpu 0,1 --n-labeled 10 --data-path ./data/yahoo_answers_csv/ \
---batch-size 8 --batch-size-u 1 --epochs 50 --val-iteration 20 \
---lambda-u 0 --T 0.5 --alpha 16 --mix-layers-set 7 9 12 --separate-mix True 
-```
-
-
-#### Training MixText model
-Please run `./code/train.py` to train the MixText model (use both labeled and unlabeled training data):
-```
-python ./code/train.py --gpu 0,1,2,3 --n-labeled 10 \
---data-path ./data/yahoo_answers_csv/ --batch-size 4 --batch-size-u 8 --epochs 20 --val-iteration 1000 \
---lambda-u 1 --T 0.5 --alpha 16 --mix-layers-set 7 9 12 \
---lrmain 0.000005 --lrlast 0.0005
-```
-
-
-
-
+Examples for how to train supervised models can be found in `bin/20_ng/train.sh` and to train semi-supervised models can be found in `bin/20_ng/ssl_train.sh`
 
