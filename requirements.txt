@@ -1,5 +1,4 @@
 crcmod
-wandb
 pandas
 numpy==1.19
 scikit-learn==0.23.1
