@@ -1,5 +1,13 @@
 # An Empirical Survey of Data Augmentation for Limited Data Learning in NLP
 
+This repo contains codes for the following paper:
+
+Jiaao Chen, Derek Tam, Colin Raffel, Mohit Bansal, and Diyi Yang: An Empirical Survey of Data Augmentation for Limited Data Learning in NLP (https://arxiv.org/abs/2106.07499)
+
+If you would like to refer to it, please cite the paper mentioned above.
+
+
+
 
 ### Code Structure
 ```
