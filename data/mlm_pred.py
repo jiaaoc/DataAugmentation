@@ -10,9 +10,6 @@ from nltk.corpus import stopwords
 from transformers import AutoModelWithLMHead, AutoTokenizer
 from data.augmentation import convert_list_to_str
 
-
-
-
 def mlm_pred(model, tokenizer, masked_text, num_mask, top_k):
     '''
     :param model:

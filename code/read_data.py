@@ -7,12 +7,8 @@ from torch.utils.data import Dataset
 import csv
 
 from transformers import *
-# from pytorch_transformers import *
-import torch.utils.data as Data
 import pickle
 from data.augmentation import synonym_replacement, random_flip, random_insert, random_delete, word_flip, span_cutoff
-
-
 
 
 class Augmentor:
@@ -101,8 +97,6 @@ class Augmentor:
                 with open(path + 'de_1.pkl', 'rb') as f:
                     de = pickle.load(f)
                     self.transform_bt.append(de)
-
-
 
         elif transform_type == 'SynonymReplacement':
             pass
