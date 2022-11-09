@@ -423,8 +423,6 @@ def get_ag_news_data(config):
 
         return train_text, train_labels, test_text, test_labels, train_idx_pool
 
-
-
 def get_yahoo_data(config):
     
     train_df = pd.read_csv(os.path.join(config.datapath, "train.csv"), header=None)
