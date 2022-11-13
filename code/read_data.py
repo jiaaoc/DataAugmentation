@@ -6,7 +6,7 @@ import random
 from torch.utils.data import Dataset
 import csv
 
-from transformers import *
+from transformers import AutoTokenizer
 import pickle
 from data.augmentation import synonym_replacement, random_flip, random_insert, random_delete, word_flip, span_cutoff
 
@@ -519,12 +519,13 @@ def get_pubmed_data(config):
             for idx, line in enumerate(f.readlines()):
                 comma_split = line.strip('\n').split(',')
                 if len(comma_split) > 2 and comma_split[0].isdigit() and comma_split[1].isdigit():
-                    list_lbl.append(int(comma_split[0]) - 1)
+                    list_lbl.append(int(comma_split[0]))
                     list_txt.append([','.join(comma_split[2:])])
 
         return list_txt, list_lbl
 
     train_txt, train_lbl = read_csv(os.path.join(config.datapath, "train.csv"))
+    print(set(train_lbl))
     test_txt, test_lbl = read_csv(os.path.join(config.datapath, "test.csv"))
 
     return np.asarray(train_txt)[:130000], np.asarray(train_lbl)[:130000], np.asarray(test_txt), np.asarray(test_lbl)

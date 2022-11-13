@@ -90,7 +90,7 @@ def format_qnli(train_labeled_data, num_examples):
         elif output == 1:
             prompt_template = f"{input[0]} implies {input[1]}."
         else:
-            raise ValueError("Invalid Output")
+            raise ValueError(f"Invalid Output {output}")
 
         total_input += " " + prompt_template
     new_example = train_labeled_data[num_examples]
@@ -106,50 +106,60 @@ def format_qnli(train_labeled_data, num_examples):
 
 def format_20ng(train_labeled_data, num_examples):
     total_input = ""
+    dict_labelIdx_toName = {
+        0: "atheism",
+        1: "computer graphics",
+        2: "computer operating system microsoft windows",
+        3: "computer system ibm hardware",
+        4: "computer system mac hardware",
+        5: "computer windows x",
+        6: "items for sale",
+        7: "recreation autos",
+        8: "recreation motorcycles",
+        9: "recreation sports baseball",
+        10: "recreation sports hockey",
+        11: "science cryptography",
+        12: "science electronics",
+        13: "science medicine",
+        14: "science space",
+        15: "religion christian",
+        16: "politics guns",
+        17: "politics middle east",
+        18: "politics",
+        19: "religion"
+    }
+
     for datapoint in train_labeled_data[:num_examples]:
         input = datapoint[0]
         output = datapoint[1]
-        if output == 0:
-            prompt_template = f""
-        elif output == 1:
-            prompt_template = f""
-        else:
-            raise ValueError("Invalid Output")
+        prompt_template = f"The follow email is about {dict_labelIdx_toName[int(output)]}: {input}"
 
         total_input += " " + prompt_template
     new_example = train_labeled_data[num_examples]
     new_input = new_example[0]
     new_output = new_example[1]
-    if new_output == 0:
-        total_input += f""
-    elif new_output == 1:
-        total_input += f""
-    else:
-        raise ValueError("Invalid Output")
+    total_input += f"The follow email is about {dict_labelIdx_toName[int(new_output)]}:"
     return new_input[0], new_output, total_input
 
 def format_pubmed(train_labeled_data, num_examples):
     total_input = ""
+    dict_labelIdx_toName = {
+        0: "objective",
+        1: "methods",
+        2: "results",
+        3: "conclusion",
+        4: "background"
+    }
     for datapoint in train_labeled_data[:num_examples]:
         input = datapoint[0]
         output = datapoint[1]
-        if output == 0:
-            prompt_template = f""
-        elif output == 1:
-            prompt_template = f""
-        else:
-            raise ValueError("Invalid Output")
+        prompt_template = f"The follow sentence in the abstract is about {dict_labelIdx_toName[int(output)]}: {input}"
 
         total_input += " " + prompt_template
     new_example = train_labeled_data[num_examples]
     new_input = new_example[0]
     new_output = new_example[1]
-    if new_output == 0:
-        total_input += f""
-    elif new_output == 1:
-        total_input += f""
-    else:
-        raise ValueError("Invalid Output")
+    total_input += f"The follow sentence in the abstract is about {dict_labelIdx_toName[int(new_output)]}: "
     return new_input[0], new_output, total_input
 
 def format_mnli(train_labeled_data, num_examples):
@@ -236,7 +246,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-g', "--device", default=0, type=int)
     parser.add_argument('-n', "--num_label", default=10, type=int)
-    parser.add_argument("--dataset", dataset=["mrpc", "qqp", "qnli", "mnli", "pubmed",
+    parser.add_argument("--dataset", choices=["mrpc", "qqp", "qnli", "mnli", "pubmed",
                                                       "20_ng"])
     parser.add_argument('-d', '--datapath', type=str, default='./processed_data/',
                         help='path to data folders')
