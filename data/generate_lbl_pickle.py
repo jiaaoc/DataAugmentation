@@ -26,23 +26,23 @@ def pickle_dataset(config_dataset, processed_dataset, num_lbl):
 
 def generate_pickle():
 
-    # pickle_dataset("20_ng", "20_ng", 10)
-    # pickle_dataset("20_ng", "20_ng", 100)
+    pickle_dataset("20_ng", "20_ng", 10)
+    pickle_dataset("20_ng", "20_ng", 100)
 
     pickle_dataset("pubmed", "pubmed", 10)
     pickle_dataset("pubmed", "pubmed", 100)
 
-    # pickle_dataset("mnli", "MNLI", 10)
-    # pickle_dataset("mnli", "MNLI", 100)
-    #
-    # pickle_dataset("qnli", "QNLI", 10)
-    # pickle_dataset("qnli", "QNLI", 100)
-    #
-    # pickle_dataset("qqp", "QQP", 10)
-    # pickle_dataset("qqp", "QQP", 100)
-    #
-    # pickle_dataset("mrpc", "MRPC", 10)
-    # pickle_dataset("mrpc", "MRPC", 100)
+    pickle_dataset("mnli", "MNLI", 10)
+    pickle_dataset("mnli", "MNLI", 100)
+
+    pickle_dataset("qnli", "QNLI", 10)
+    pickle_dataset("qnli", "QNLI", 100)
+
+    pickle_dataset("qqp", "QQP", 10)
+    pickle_dataset("qqp", "QQP", 100)
+
+    pickle_dataset("mrpc", "MRPC", 10)
+    pickle_dataset("mrpc", "MRPC", 100)
 
 
 
