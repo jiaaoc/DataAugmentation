@@ -237,7 +237,7 @@ def prompt_pred(data_path, dataset, num_lbl, device):
             list_augmentedData.append((all_prompt_input[start_idx * batch_size + idx], output))
 
 
-    with open(data_path + '/few-shot_gen.pkl', 'wb') as f:
+    with open(data_path + f'/few-shot_gen_{num_lbl}_lbl.pkl', 'wb') as f:
         pickle.dump(list_augmentedData, f)
 
 
