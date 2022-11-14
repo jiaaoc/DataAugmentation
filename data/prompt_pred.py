@@ -204,17 +204,22 @@ def prompt_pred(data_path, dataset, num_lbl, device):
         random.shuffle(train_labeled_data)
         if dataset == "mrpc":
             random_input, new_output, total_input = format_mrpc(train_labeled_data, 5)
+            gen_len = 50
         elif dataset == "qqp":
             random_input, new_output, total_input = format_qqp(train_labeled_data, 5)
+            gen_len = 50
         elif dataset == "qnli":
             random_input, new_output, total_input = format_qnli(train_labeled_data, 5)
+            gen_len = 50
         elif dataset == "mnli":
             random_input, new_output, total_input = format_mnli(train_labeled_data, 5)
+            gen_len = 50
         elif dataset == "pubmed":
             random_input, new_output, total_input = format_pubmed(train_labeled_data, 5)
+            gen_len = 50
         elif dataset == "20_ng":
             random_input, new_output, total_input = format_20ng(train_labeled_data, 5)
-
+            gen_len = 200
         all_input.append(total_input)
         all_prompt_input.append((random_input, new_output))
     batch_size = 1
@@ -223,7 +228,7 @@ def prompt_pred(data_path, dataset, num_lbl, device):
     for start_idx in tqdm(range(0, 1000, batch_size)):
         batch_input = all_input[start_idx:min(1000, start_idx+batch_size)]
         tokenizer.pad_token = tokenizer.eos_token
-        batch_dict = tokenizer(batch_input, return_tensors="pt", padding=True)
+        batch_dict = tokenizer(batch_input, return_tensors="pt", padding=True, truncatation=True, max_seq_len=1024-gen_len)
         input_ids = batch_dict["input_ids"].to(device)
 
         input_len = len(batch_dict["input_ids"][0])
@@ -232,7 +237,7 @@ def prompt_pred(data_path, dataset, num_lbl, device):
             batch_generatedIds = transformer.generate(input_ids,
                                                       attention_mask=batch_dict["attention_mask"].to(device),
                                                       do_sample=False,
-                                                      max_length=50 + input_len)
+                                                      max_length=gen_len + input_len)
         for idx, generated_ids in enumerate(batch_generatedIds):
             new_input = tokenizer.decode(batch_generatedIds[idx][input_len:], skip_special_tokens=True)
             current_prompt_input = all_prompt_input[start_idx * batch_size + idx]
