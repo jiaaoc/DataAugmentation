@@ -627,8 +627,17 @@ def get_data(config):
     if config.transform_type is not None:
         augmentor = Augmentor(config, config.datapath, config.transform_type, config.transform_times)
 
-    train_labeled_dataset = loader_labeled(
-    train_txt[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, config.max_seq_length, augmentor)
+    if config.few_shot_gen_num_lbl:
+        with open(config.datapath + f'few-shot_gen_{config.few_shot_gen_num_lbl}_lbl.pkl', 'rb') as f:
+            augmented_set = pickle.load(f)
+        import ipdb; ipdb.set_trace()
+        augmented_txt = augmented_set[0]
+        
+        train_labeled_dataset = loader_labeled(
+        train_txt[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, config.max_seq_length, augmentor)
+    else:
+        train_labeled_dataset = loader_labeled(
+        train_txt[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, config.max_seq_length, augmentor)
 
     train_unlabeled_dataset = loader_unlabeled(
     train_txt[train_unlabeled_idxs], train_unlabeled_idxs, tokenizer, config.max_seq_length, Augmentor(config, config.datapath, config.transform_type, config.transform_times))

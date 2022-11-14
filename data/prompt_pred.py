@@ -219,6 +219,7 @@ def prompt_pred(data_path, dataset, num_lbl, device):
         all_prompt_input.append((random_input, new_output))
     batch_size = 1
     list_augmentedData = []
+    list_lbl = []
     for start_idx in tqdm(range(0, 1000, batch_size)):
         batch_input = all_input[start_idx:min(1000, start_idx+batch_size)]
         tokenizer.pad_token = tokenizer.eos_token
@@ -236,12 +237,14 @@ def prompt_pred(data_path, dataset, num_lbl, device):
             new_input = tokenizer.decode(batch_generatedIds[idx][input_len:], skip_special_tokens=True)
             current_prompt_input = all_prompt_input[start_idx * batch_size + idx]
             if current_prompt_input[0] is None:
-                list_augmentedData.append((new_input, current_prompt_input[1]))
+                list_augmentedData.append(new_input)
+                list_lbl.append(current_prompt_input[1])
             else:
-                list_augmentedData.append(((current_prompt_input[0], new_input), current_prompt_input[1]))
+                list_augmentedData.append((current_prompt_input[0], new_input))
+                list_lbl.append(current_prompt_input[1])
 
     with open(data_path + f'/few-shot_gen_{num_lbl}_lbl.pkl', 'wb') as f:
-        pickle.dump(list_augmentedData, f)
+        pickle.dump((list_augmentedData, list_lbl), f)
 
 
 
