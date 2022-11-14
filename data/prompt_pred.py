@@ -228,7 +228,7 @@ def prompt_pred(data_path, dataset, num_lbl, device):
     for start_idx in tqdm(range(0, 1000, batch_size)):
         batch_input = all_input[start_idx:min(1000, start_idx+batch_size)]
         tokenizer.pad_token = tokenizer.eos_token
-        batch_dict = tokenizer(batch_input, return_tensors="pt", padding=True, truncation=True, max_seq_len=1024-gen_len)
+        batch_dict = tokenizer(batch_input, return_tensors="pt", padding=True, truncation=True, max_length=1024-gen_len)
         input_ids = batch_dict["input_ids"].to(device)
 
         input_len = len(batch_dict["input_ids"][0])
