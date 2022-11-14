@@ -630,11 +630,15 @@ def get_data(config):
     if config.few_shot_gen_num_lbl:
         with open(config.datapath + f'few-shot_gen_{config.few_shot_gen_num_lbl}_lbl.pkl', 'rb') as f:
             augmented_set = pickle.load(f)
-        import ipdb; ipdb.set_trace()
-        augmented_txt = augmented_set[0]
-        
+        augmented_txt = np.asarray(list(map(lambda x: list(x), augmented_set[0])))
+        augmented_lbl = np.asarray(augmented_set[1])
+        max_idx = max(train_labeled_idxs)
+        augmented_idx = np.asarray(list(range(max_idx, max_idx+1000)))
         train_labeled_dataset = loader_labeled(
-        train_txt[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, config.max_seq_length, augmentor)
+        np.concatenate([train_txt[train_labeled_idxs], augmented_txt]),
+        np.concatenate([train_labels[train_labeled_idxs], augmented_lbl]),
+        np.concatenate([train_labeled_idxs, augmented_idx]),
+            tokenizer, config.max_seq_length, augmentor)
     else:
         train_labeled_dataset = loader_labeled(
         train_txt[train_labeled_idxs], train_labels[train_labeled_idxs], train_labeled_idxs, tokenizer, config.max_seq_length, augmentor)
