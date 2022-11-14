@@ -139,7 +139,7 @@ def format_20ng(train_labeled_data, num_examples):
     new_input = new_example[0]
     new_output = new_example[1]
     total_input += f"The follow email is about {dict_labelIdx_toName[int(new_output)]}:"
-    return new_input[0], new_output, total_input
+    return None, new_output, total_input
 
 def format_pubmed(train_labeled_data, num_examples):
     total_input = ""
@@ -160,7 +160,7 @@ def format_pubmed(train_labeled_data, num_examples):
     new_input = new_example[0]
     new_output = new_example[1]
     total_input += f"The follow sentence in the abstract is about {dict_labelIdx_toName[int(new_output)]}: "
-    return new_input[0], new_output, total_input
+    return None, new_output, total_input
 
 def format_mnli(train_labeled_data, num_examples):
     total_input = ""
@@ -233,9 +233,12 @@ def prompt_pred(data_path, dataset, num_lbl, device):
                                                       do_sample=False,
                                                       max_length=50 + input_len)
         for idx, generated_ids in enumerate(batch_generatedIds):
-            output = tokenizer.decode(batch_generatedIds[idx][input_len:], skip_special_tokens=True)
-            list_augmentedData.append((all_prompt_input[start_idx * batch_size + idx], output))
-
+            new_input = tokenizer.decode(batch_generatedIds[idx][input_len:], skip_special_tokens=True)
+            current_prompt_input = all_prompt_input[start_idx * batch_size + idx]
+            if current_prompt_input[0] is None:
+                list_augmentedData.append((new_input, current_prompt_input[1]))
+            else:
+                list_augmentedData.append(((current_prompt_input[0], new_input), current_prompt_input[1]))
 
     with open(data_path + f'/few-shot_gen_{num_lbl}_lbl.pkl', 'wb') as f:
         pickle.dump(list_augmentedData, f)
